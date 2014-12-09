@@ -1,0 +1,3 @@
+[submodule "cpdn_ancil_maker"]
+	path = cpdn_ancil_maker
+	url = git://github.com/nrmassey/cpdn_ancil_maker.git
