@@ -3,6 +3,7 @@ from sort_umids import sort_tasknames,choose_mask,choose_tasknames
 import numpy as np
 from netcdf_file import netcdf_file
 import matplotlib.pyplot as plt
+import pickle
 
 # Takes 4 seasonal bias files and calculates a yearly average
 def ave_bias(bias_files):
@@ -132,7 +133,7 @@ def land_points(obs):
 def ret_time(data,obs):
 
 	ensembles=data.shape[0]*1.0 # First dimension of data is for ensembles. 
-	return ensembles/(data.mean(1).mean(1)>obs.mean(0).mean(0)).sum(0),land_points
+	return ensembles/(data.mean(1).mean(1)>obs.mean(0).mean(0)).sum(0)
 
 #################
 
@@ -221,8 +222,19 @@ def print_region_returntimes(historical_data,natural_data,clim_hist_data,clim_na
 	print_returntimes(historical_data[:,ymin:ymax,xmin:xmax],natural_data[:,ymin:ymax,xmin:xmax],clim_hist_data[:,ymin:ymax,xmin:xmax],clim_nat_data[:,ymin:ymax,xmin:xmax],obs[ymin:ymax,xmin:xmax])
 
 
-def print_returntimes(historical_data,natural_data,clim_hist_data,clim_nat_data,obs):
+def get_region_returntimes(historical_data,natural_data,clim_hist_data,clim_nat_data,obs,xmin,xmax,ymin,ymax):
+	return get_returntimes(historical_data[:,ymin:ymax,xmin:xmax],natural_data[:,ymin:ymax,xmin:xmax],clim_hist_data[:,ymin:ymax,xmin:xmax],clim_nat_data[:,ymin:ymax,xmin:xmax],obs[ymin:ymax,xmin:xmax])
 
+
+def get_returntimes(historical_data,natural_data,clim_hist_data,clim_nat_data,obs):
+	ret_hist=ret_time(historical_data,obs)
+	ret_nat=ret_time(natural_data,obs)
+	ret_clim_hist=ret_time(clim_hist_data,obs)
+	ret_clim_nat=ret_time(clim_nat_data,obs)
+	lp=land_points(obs)
+	return ret_hist,ret_nat,ret_clim_hist,ret_clim_nat,lp
+	
+def print_returntimes(historical_data,natural_data,clim_hist_data,clim_nat_data,obs):
 
 	ret_hist=ret_time(historical_data,obs)
 	print '2014 All Forcings return time:',ret_hist
@@ -251,144 +263,139 @@ if __name__=='__main__':
 
 ###############  Model climatological bias
 
-	bias_files='/home/cenv0437/scratch/data_from_ouce/EU_???_temp-cruts_0.44_mean.nc'
+	bias_files='/ouce-home/staff/cenv0270/CPDN/Europe_2014/observations/CRUT4/EU_???_temp-cruts_0.44_mean.nc'
 	bias = ave_bias(bias_files)[:,:]
 	
 	
 ################  Observations
 	
+	# CRUTEM observational set
+	obs_N96='/ouce-home/staff/cenv0270/CPDN/Europe_2014/observations/final/CRU_T2m_dec-nov_N96_interp_lsm.nc'
 
+	# Obs using GFS analysis
+#	obs_p5deg='/ouce-home/staff/cenv0270/CPDN/Europe_2014/observations/HALF_final/GFS_dec13-nov14_biascorrected.nc'
 
 	# Obs using higher resolution cru.ts climatology
-	obs_p5deg='/home/cenv0437/scratch/data_from_ouce/CRU_TS_dec13-nov14_crut4anomalies.nc'
+	obs_p5deg='/ouce-home/staff/cenv0270/CPDN/Europe_2014/observations/HALF_final/CRU_TS_dec13-nov14_crut4anomalies.nc'
 
 	# Regrid obs to rotated regional grid
-	rot_template='/home/cenv0437/scratch/data_from_ouce/hadam3p_eu_z4ao_2013_1_009238311_0_tasmean.nc'
-	
+	rot_template='/ouce-home/staff/cenv0437/data/batch_100/hadam3p_eu_z4ao_2013_1_009238311_0_tasmean.nc'
+#	obs=remap_N96_to_rotated(obs_N96,rot_template)
 	obs=remap_p5deg_to_rotated(obs_p5deg,rot_template)[:,:]
 
 
 #################  Model Data:
 
-	infiles=glob.glob('/home/cenv0437/scratch//batch_100/hadam3p_eu_*_tasmean.nc')
+	infiles=glob.glob('/ouce-home/staff/cenv0437/data/batch_100/hadam3p_eu_*_tasmean.nc')
 	# Have to choose ensemble members by umid
 	historical_files=choose_tasknames(infiles,'z200','z2gn')+choose_tasknames(infiles,'z4c0','z4sn')
 	natural_files=[x for x in infiles if x not in historical_files]
 
-	clim_hist_files=glob.glob('/home/cenv0437/scratch/batch_43/hadam3p_eu_*_tasmean.nc')
-	clim_nat_files=glob.glob('/home/cenv0437/scratch/batch_45/hadam3p_eu_*_tasmean.nc')
+	clim_hist_files=glob.glob('/ouce-home/staff/cenv0437/data/batch_43/hadam3p_eu_*_tasmean.nc')
+	clim_nat_files=glob.glob('/ouce-home/staff/cenv0437/data/batch_45/hadam3p_eu_*_tasmean.nc')
 
 #################################################
 # Load Data	
 
-# Load historical data into single array and bias correct
-	print '2014 historical files:',len(historical_files)
-	hist_raw=np.ma.array(load_ensemble(historical_files))[:,:,:]
-	# Apply mask (only need to do this when not bias correcting)
-	for i in range(len(historical_files)):
-	        hist_raw[i,:]=np.ma.masked_where(bias.mask,hist_raw[i,:])
-	historical_data=hist_raw-bias
-	print 'loaded all forcings 2014 data...'
+	read_data=False
+	if read_data:
+		
+	# Load historical data into single array and bias correct
+		print '2014 historical files:',len(historical_files)
+		hist_raw=np.ma.array(load_ensemble(historical_files))[:,:,:]
+		# Apply mask (only need to do this when not bias correcting)
+		for i in range(len(historical_files)):
+				hist_raw[i,:]=np.ma.masked_where(bias.mask,hist_raw[i,:])
+		historical_data=hist_raw-bias
+		print 'loaded all forcings 2014 data...'
 	
 	
-# Load natural simulation data into single array and bias correct
-	print '2014 natural files:',len(natural_files)
-	natural_raw=np.ma.array(load_ensemble(natural_files))[:,:,:]
-	# Apply mask (only need to do this when not bias correcting)
-	for i in range(len(natural_files)):
-	        natural_raw[i,:]=np.ma.masked_where(bias.mask,natural_raw[i,:])
-	natural_data=natural_raw-bias
-	print 'loaded natural 2014 data...'
+	# Load natural simulation data into single array and bias correct
+		print '2014 natural files:',len(natural_files)
+		natural_raw=np.ma.array(load_ensemble(natural_files))[:,:,:]
+		# Apply mask (only need to do this when not bias correcting)
+		for i in range(len(natural_files)):
+				natural_raw[i,:]=np.ma.masked_where(bias.mask,natural_raw[i,:])
+		natural_data=natural_raw-bias
+		print 'loaded natural 2014 data...'
 
-######## Climatologies
+	######## Climatologies
 
-# Ensemble of historical simulations between 2000-2012
-	print '1985-2011 all forcings files:',len(clim_hist_files)
-	clim_hist_data=load_ensemble(clim_hist_files)[:,:,:]-bias
-	print 'loaded all forcings 1985-2011 data...'
+	# Ensemble of historical simulations between 2000-2012
+		print '1985-2011 all forcings files:',len(clim_hist_files)
+		clim_hist_data=load_ensemble(clim_hist_files)[:,:,:]-bias
+		print 'loaded all forcings 1985-2011 data...'
 
-# Ensemble of natural simulations between 2000-2012
-	print '1985-2011 natural files:',len(clim_nat_files)
-	clim_nat_data=load_ensemble(clim_nat_files)[:,:,:]-bias
-	print 'loaded natural 1985-2011 data...'
+	# Ensemble of natural simulations between 2000-2012
+		print '1985-2011 natural files:',len(clim_nat_files)
+		clim_nat_data=load_ensemble(clim_nat_files)[:,:,:]-bias
+		print 'loaded natural 1985-2011 data...'
+		
+		# Write data to pickle
+		fdata=open('data.pkl','wb')
+		pickle.dump(historical_data,fdata,-1)
+		pickle.dump(natural_data,fdata,-1)
+		pickle.dump(clim_hist_data,fdata,-1)
+		pickle.dump(clim_nat_data,fdata,-1)
+		fdata.close()
+
+	else: #load from pickle
+		fdata=open('data.pkl','rb')
+		historical_data=pickle.load(fdata)
+		natural_data=pickle.load(fdata)
+		clim_hist_data=pickle.load(fdata)
+		clim_nat_data=pickle.load(fdata)
+		fdata.close()	
+		print 'loaded data from data.pkl'
+		
 
 ########################################################
 # Print Diagnostics
 
-	print '\n######## ALL OF EUROPE #########\n'
-	print_returntimes(historical_data,natural_data,clim_hist_data,clim_nat_data,obs)
-	print '\n######## GERMANY REGION #########\n'
-	print_region_returntimes(historical_data,natural_data,clim_hist_data,clim_nat_data,obs,50,90,50,60)
-	print '\n######## Random grid point #########\n'
-	print_region_returntimes(historical_data,natural_data,clim_hist_data,clim_nat_data,obs,40,41,80,81)
-
-
-
-########
-
-# Without bias correction
-#	ret_hist_biased=ret_time(hist_raw,obs)
-#	print '2014 All forcings, no bias correction:',ret_hist_biased
-#	ret_nat_biased=ret_time(natural_raw,obs)
-#	print '2014 Natural, no bias correction:',ret_nat_biased
-
+	hist=[]
+	nat=[]
+	clim_hist=[]
+	clim_nat=[]
+	lp=[]
 	
+	#All of Europe
+	vals=get_returntimes(historical_data,natural_data,clim_hist_data,clim_nat_data,obs)
+	print vals
+	hist.append(vals[0])
+	nat.append(vals[1])
+	clim_hist.append(vals[2])
+	clim_nat.append(vals[3])
+	lp.append(vals[4])
 	
-# Region to look at germany:
-	hmean=hist_raw[:,50:60,10:50].mean(1).mean(1)
-	nmean=natural_raw[:,50:60,10:50].mean(1).mean(1)	
-	obsmean=obs[50:60,10:50].mean(0).mean(0)
-	chist4=(hmean>obsmean).sum(0)/(len(historical_files)*1.0)
-	cnat4=(nmean>obsmean).sum(0)/(len(natural_files)*1.0)
-
-	print 'return times: all forcings=',chist2,'natural forcings=',cnat2,'2000-2008=',cold
-	print 'far',1-(chist2/cnat2)
-	print 'change in risk', cnat2/chist2
-	
-	print 'Without bias correction:'
-	print 'return times: all forcings=',1/chist3,'natural forcings=',1/cnat3
-	print 'far',1-(cnat3/chist3)
-	print 'change in risk', cnat3/chist3
-	
-	print 'Germany:'
-	print 'return times: all forcings=',1/chist4,'natural forcings=',1/cnat4
-	print 'far',1-(cnat4/chist4)
-	print 'change in risk', (chist4-cnat4)/cnat4
-	
-
-	
-	# Spatially resolved count of ensembles hotter than obs:	
-	condition=historical_data>obs
-	count_hist=condition.sum(0)/(len(historical_files)*1.0)
-	
-	condition=natural_data>obs
-	count_nat=condition.sum(0)/(len(natural_files)*1.0)
-
-	# Change in likelihood
-	change=(count_hist-count_nat)/(count_nat+1e-5)
-	
-	# Anomaly between obs and ensemble mean of historical simulations
-	anom=obs-(historical_data.mean(0))
-
-	# Anomaly between obs and ensemble mean of nat simulations
-	anom_nat=obs-(natural_data.mean(0))
-
-	# FAR
-	far=1.0-((count_nat)/(count_hist+1e-5))
-	far=far*((count_hist!=0.0)*1.0) # Set to zero where count_hist==0
-
-####################################################
-	# Write out data to netcdf
-#	create_netcdf_stripped(netcdf_file(rot_template),obs,'CRU_T2m_dec-nov_regional.nc')
-#	create_netcdf_stripped(netcdf_file(rot_template),hist_raw,'hist_raw.nc')
-#	create_netcdf_stripped(netcdf_file(rot_template),historical_data,'hist_corrected.nc')
-#	create_netcdf_stripped(netcdf_file(rot_template),natural_raw,'natural_raw.nc')
-#	create_netcdf_stripped(netcdf_file(rot_template),natural_data,'natural_corrected.nc')
-#	create_netcdf_stripped(netcdf_file(rot_template),anom,'anom_corrected.nc')
-#	create_netcdf_stripped(netcdf_file(rot_template),count_hist,'prob_historical_corrected.nc')
-#	create_netcdf_stripped(netcdf_file(rot_template),count_nat,'prob_natural_corrected.nc')
-#	create_netcdf_stripped(netcdf_file(rot_template),far,'far_corrected.nc')
-
+	# Some random regions
+	for i in range(50):
+		try:
+#			vals=get_region_returntimes(historical_data,natural_data,clim_hist_data,clim_nat_data,obs,50-i,51+i,0,-1)
+#			vals=get_region_returntimes(historical_data,natural_data,clim_hist_data,clim_nat_data,obs,0,-1,50-i,51+i)
+			vals=get_region_returntimes(historical_data,natural_data,clim_hist_data,clim_nat_data,obs,50-i,51+i,50-i,51+i)
+#			vals=get_region_returntimes(historical_data,natural_data,clim_hist_data,clim_nat_data,obs,70,71+i,39-i,40+i)
+		except: 
+			continue
+		if vals[4]>0:
+			hist.append(vals[0])
+			nat.append(vals[1])
+			clim_hist.append(vals[2])
+			clim_nat.append(vals[3])
+			lp.append(vals[4])
+			
+	# Some other random regions
+#	for i in range(50):
+#		try:
+#			vals=get_region_returntimes(historical_data,natural_data,clim_hist_data,clim_nat_data,obs,50-1,51+i,0,-1)
+#		except: 
+#			continue
+#		if vals[4]>0:
+#			hist.append(vals[0])
+#			nat.append(vals[1])
+#			clim_hist.append(vals[2])
+#			clim_nat.append(vals[3])
+#			lp.append(vals[4])
+		
 ######################################################
 # Plot stuff
 
@@ -398,51 +405,14 @@ if __name__=='__main__':
 		os.remove(f)
 		
 	plt.figure(1)
-	plt.contourf((count_hist[::-1,:]),np.arange(0,1.05,.05),extend='both')
-	plt.colorbar()
-	plt.title('Probability of temperature being above 2014 temp = '+str(count_hist.mean()))
+	plt.plot(lp,hist,'.',label='hist')
+	plt.plot(lp,nat,'.',label='nat')
+	plt.plot(lp,clim_hist,'.',label='clim_hist')
+	plt.plot(lp,clim_nat,'.',label='clim_nat')
+	plt.title('return time vs size of region')
+	plt.legend()
+	plt.ylim([0,700])
 	plt.savefig('figure1.png')
 		
-	plt.figure(2)
-	plt.contourf((count_nat[::-1,:]),np.arange(0,0.25,.01),extend='both')
-	plt.colorbar()
-	plt.title('Probability of temperature being above 2014 temp \nwith natural forcings only = '+str(count_nat.mean()))
-	plt.savefig('figure2.png')
-	
-	plt.figure(3)
-	plt.title('Observational dataset of Temperature for 2014 = '+str(obs.mean()))
-	plt.contourf(obs[::-1,:],20)
-	plt.colorbar()
-	plt.savefig('figure3.png')
-	
-	plt.figure(4)
-	plt.title('2014 Anomaly (Observations - Ensemble mean) = '+str(anom.mean()))
-	plt.contourf(anom[::-1,:],20)
-	plt.colorbar()
-	plt.savefig('figure4.png')
-	
-	plt.figure(5)
-	plt.title('Climatalogical bias used to bias correct model = '+str(bias.mean()))
-	plt.contourf(bias[::-1,:],20)
-	plt.colorbar()
-	plt.savefig('figure5.png')
-	
-	plt.figure(6)
-	plt.title('FAR = '+str(far.mean()))
-	plt.contourf(far[::-1,:],np.arange(0,1.05,.05),extend='both')
-	plt.colorbar()
-	plt.savefig('figure6.png')	
-	
-	plt.figure(7)
-	plt.title('Change in likelihood of temp greater than 2014 ='+str(change.mean()))
-	plt.contourf(change[::-1,:],np.arange(0,22,2),extend='both')
-	plt.colorbar()
-	plt.savefig('figure7.png')	
-	
-	plt.figure(8)
-	plt.title('2014 Anomaly (Observations - Nat Ensemble mean) = '+str(anom_nat.mean()))
-	plt.contourf(anom_nat[::-1,:],20)
-	plt.colorbar()
-	plt.savefig('figure8.png')	
-		
+
 	#plt.show()
