@@ -244,36 +244,32 @@ if __name__=='__main__':
 
 ###############  Model climatological bias
 
-	bias_files='/ouce-home/staff/cenv0270/CPDN/Europe_2014/observations/CRUT4/EU_???_temp-cruts_0.44_mean.nc'
+	bias_files='/home/cenv0437/scratch/data_from_ouce/EU_???_temp-cruts_0.44_mean.nc'
 	bias = ave_bias(bias_files)[:,:]
 	
 	
 ################  Observations
 	
-	# CRUTEM observational set
-	obs_N96='/ouce-home/staff/cenv0270/CPDN/Europe_2014/observations/final/CRU_T2m_dec-nov_N96_interp_lsm.nc'
 
-	# Obs using GFS analysis
-#	obs_p5deg='/ouce-home/staff/cenv0270/CPDN/Europe_2014/observations/HALF_final/GFS_dec13-nov14_biascorrected.nc'
 
 	# Obs using higher resolution cru.ts climatology
-	obs_p5deg='/ouce-home/staff/cenv0270/CPDN/Europe_2014/observations/HALF_final/CRU_TS_dec13-nov14_crut4anomalies.nc'
+	obs_p5deg='/home/cenv0437/scratch/data_from_ouce/CRU_TS_dec13-nov14_crut4anomalies.nc'
 
 	# Regrid obs to rotated regional grid
-	rot_template='/ouce-home/staff/cenv0437/data/batch_100/hadam3p_eu_z4ao_2013_1_009238311_0_tasmean.nc'
-#	obs=remap_N96_to_rotated(obs_N96,rot_template)
+	rot_template='/home/cenv0437/scratch/data_from_ouce/hadam3p_eu_z4ao_2013_1_009238311_0_tasmean.nc'
+	
 	obs=remap_p5deg_to_rotated(obs_p5deg,rot_template)[:,:]
 
 
 #################  Model Data:
 
-	infiles=glob.glob('/ouce-home/staff/cenv0437/data/batch_100/hadam3p_eu_*_tasmean.nc')
+	infiles=glob.glob('/home/cenv0437/scratch//batch_100/hadam3p_eu_*_tasmean.nc')
 	# Have to choose ensemble members by umid
 	historical_files=choose_tasknames(infiles,'z200','z2gn')+choose_tasknames(infiles,'z4c0','z4sn')
 	natural_files=[x for x in infiles if x not in historical_files]
 
-	clim_hist_files=glob.glob('/ouce-home/staff/cenv0437/data/batch_43/hadam3p_eu_*_tasmean.nc')
-	clim_nat_files=glob.glob('/ouce-home/staff/cenv0437/data/batch_45/hadam3p_eu_*_tasmean.nc')
+	clim_hist_files=glob.glob('/home/cenv0437/scratch/batch_43/hadam3p_eu_*_tasmean.nc')
+	clim_nat_files=glob.glob('/home/cenv0437/scratch/batch_45/hadam3p_eu_*_tasmean.nc')
 
 #################################################
 # Load Data	
