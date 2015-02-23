@@ -124,23 +124,19 @@ def create_netcdf_stripped(template,data,outname,lat_start=4,lat_end=7,lon_start
 
 ###############
 
+def land_points(obs):
+	#number of land points
+	return np.logical_not(obs.mask).sum()
+
 # Calculate the return time of the mean of the data being greater than an observational dataset
 def ret_time(data,obs):
 
 	ensembles=data.shape[0]*1.0 # First dimension of data is for ensembles. 
-	return ensembles/(data.mean(1).mean(1)>obs.mean(0).mean(0)).sum(0)
+	return ensembles/(data.mean(1).mean(1)>obs.mean(0).mean(0)).sum(0),land_points
 
 #################
 
-def print_region_returntimes(historical_data,natural_data,clim_hist_data,clim_nat_data,obs,xmin,xmax,ymin,ymax):
-	print_returntimes(historical_data[:,ymin:ymax,xmin:xmax],natural_data[:,ymin:ymax,xmin:xmax],clim_hist_data[:,ymin:ymax,xmin:xmax],clim_nat_data[:,ymin:ymax,xmin:xmax],obs[ymin:ymax,xmin:xmax])
-
-
-def print_returntimes(historical_data,natural_data,clim_hist_data,clim_nat_data,obs):
-
-	ret_hist=ret_time(historical_data,obs)
-	print '2014 All Forcings return time:',ret_hist
-
+def print_model_returntimes(natural_data,obs):
 # CCSM4	
 	model_mask=choose_mask(natural_files,'z2go','z2m7')+choose_mask(natural_files,'z4so','z5kf')
 	print sum(model_mask)
@@ -219,12 +215,23 @@ def print_returntimes(historical_data,natural_data,clim_hist_data,clim_nat_data,
 	print sum(model_mask)
 	ret_model=ret_time(natural_data[model_mask,:,:],obs)
 	print '2014 MMM return time:',ret_model
+	
+
+def print_region_returntimes(historical_data,natural_data,clim_hist_data,clim_nat_data,obs,xmin,xmax,ymin,ymax):
+	print_returntimes(historical_data[:,ymin:ymax,xmin:xmax],natural_data[:,ymin:ymax,xmin:xmax],clim_hist_data[:,ymin:ymax,xmin:xmax],clim_nat_data[:,ymin:ymax,xmin:xmax],obs[ymin:ymax,xmin:xmax])
 
 
-########  All models
+def print_returntimes(historical_data,natural_data,clim_hist_data,clim_nat_data,obs):
+
+
+	ret_hist=ret_time(historical_data,obs)
+	print '2014 All Forcings return time:',ret_hist
 
 	ret_nat=ret_time(natural_data,obs)
 	print '2014 Natural return time:',ret_nat
+	
+	# Print return time separated by model
+	print_model_returntimes(natural_data,obs)
 
 ######## Climatologies
 
@@ -315,7 +322,9 @@ if __name__=='__main__':
 	print '\n######## ALL OF EUROPE #########\n'
 	print_returntimes(historical_data,natural_data,clim_hist_data,clim_nat_data,obs)
 	print '\n######## GERMANY REGION #########\n'
-	print_region_returntimes(historical_data,natural_data,clim_hist_data,clim_nat_data,obs,10,50,50,60)
+	print_region_returntimes(historical_data,natural_data,clim_hist_data,clim_nat_data,obs,50,90,50,60)
+	print '\n######## Random grid point #########\n'
+	print_region_returntimes(historical_data,natural_data,clim_hist_data,clim_nat_data,obs,40,41,80,81)
 
 
 
