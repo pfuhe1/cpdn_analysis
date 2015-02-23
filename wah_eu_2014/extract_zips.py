@@ -1,8 +1,9 @@
+#!/usr/local/bin/python2.7
 import os,shutil,zipfile,glob
 import numpy as np
 #from scipy.io.netcdf import netcdf_file
 from netcdf_file import netcdf_file
-
+import sys
 
 
 # Function to calculate yearly mean from monthly means
@@ -29,6 +30,7 @@ def yearly_mean(ncfiles):
 		return meantemp/12
  
 #function to return zip name 
+# NOTE: hardcoded for a run starting in dec!
 def nc_filename(umid,year,zip_num,pp_code):
 	mon_map={1:'dec',2:'jan',3:'feb',4:'mar',5:'apr',6:'may',7:'jun',8:'jul',9:'aug',10:'sep',11:'oct',12:'nov'}
 	if zip_num>1: year=year+1
@@ -40,28 +42,29 @@ def nc_filename(umid,year,zip_num,pp_code):
 	return umid+pp_code+dec_code+year_code+mon_map[zip_num]+'.nc'
  
  # Extract one ncfile from each monthly zip and return list
-def extract_zips(taskdir,outpath):
+def extract_zips(taskdir,outpath,nzips=12,file_code='ga.pe'):
 #	file_map={1:'l3dec',2:'l4jan',3:'l4feb',4:'l4mar',5:'l4apr',6:'l4may',7:'l4jun',8:'l4jul',9:'l4aug',10:'l4sep',11:'l4oct',12:'l4nov'}
 #	mon_map={'jan':1,'feb':2,'mar':3,'apr':4,'may':5,'jun':6,'jul':7,'aug':8,'sep':9,'oct':10,'nov':11,'dec':12}	
 
-	# Make tmp folder
-	tmpdir=os.path.join(outpath,'tmp')
-	if not os.path.exists(tmpdir):
-		os.makedirs(tmpdir)		
+	# Make outpath folder
+	if not os.path.exists(outpath):
+		os.makedirs(outpath)		
 	taskname = taskdir.split('/')[-1]
 	[umid,year]=taskname.split('_')[2:4]
 	extracted=[]
-	for i in range(1,13):
-		zipname=os.path.join(taskdir,taskname+'_'+str(i)+'.zip')
-		if os.path.exists(zipname):
-			zip=zipfile.ZipFile(zipname,'r')
-			# Just extract the monthly means from regional model
-#			ncfile=umid+'ga.pe'+file_map[i]+'.nc'
-			ncfile=nc_filename(umid,int(year),i,'ga.pe')
-			zip.extract(ncfile,tmpdir) 
-			extracted.append(os.path.join(tmpdir,ncfile))
-		# Only return if all of the zips are present
-		else: raise Exception('Not all zips are present')
+	for i in range(1,nzips+1):
+		ncfile=nc_filename(umid,int(year),i,file_code)
+		# Only extract if needed
+		if not os.path.exists(os.path.join(outpath,ncfile)):
+			zipname=os.path.join(taskdir,taskname+'_'+str(i)+'.zip')
+			if os.path.exists(zipname):
+				zip=zipfile.ZipFile(zipname,'r')
+				# Just extract the monthly means from regional model
+				zip.extract(ncfile,outpath)
+				print 'extracted',ncfile 
+			# Only return if all of the zips are present
+			else: raise Exception('Not all zips are present')
+		extracted.append(os.path.join(outpath,ncfile))
 	return extracted
 	
 def create_netcdf(template,data,outname):
@@ -106,8 +109,13 @@ def create_netcdf(template,data,outname):
 	outfile.close()
 
 if __name__=='__main__':
-	incoming='/gpfs/projects/cpdn/storage/boinc/upload/hadam3p_eu/batch100/hadam3p_eu_*'
-	outpath='/gpfs/projects/cpdn/scratch/cenv0437/batch_100'
+	try:
+		batchnum=sys.argv[1]
+	except Exception, e:
+		raise 'Please enter batch number to extract'
+	
+	incoming='/gpfs/projects/cpdn/storage/boinc/upload/hadam3p_eu/batch'+batchnum+'/hadam3p_eu_*'
+	outpath='/gpfs/projects/cpdn/scratch/cenv0437/batch_'+batchnum
 #	incoming='/gpfs/projects/cpdn/storage/boinc/upload/hadam3p_eu/batch43/hadam3p_eu_????_2*'
 #	outpath='/gpfs/projects/cpdn/scratch/cenv0437/batch_43'
 	# Make sure output exists
@@ -122,7 +130,7 @@ if __name__=='__main__':
 		
 		if not os.path.exists(outfile):
 			try:
-				ncfiles=extract_zips(taskdir,outpath)
+				ncfiles=extract_zips(taskdir,outpath+'/tmp')
 				meantemp=yearly_mean(ncfiles)
 				tmp=netcdf_file(ncfiles[0],'r') # use as a template for output file
 				create_netcdf(tmp,meantemp,outfile)
