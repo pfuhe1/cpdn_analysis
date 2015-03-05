@@ -20,7 +20,7 @@ def yearly_mean(ncfiles):
 		data=ncfile.variables['field16'][:]
 		
 		# Data consistency checking (for Temperature only!!!)
-		if data.min()<170.0 or data.max()>350.0:
+		if data.min()<170.0 or data.max()>350.0 or not np.all(np.isfinite(data)):
 			raise Exception('Data outside reasonable bounds')
 		meantemp=meantemp+data
 		i=i+1
