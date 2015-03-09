@@ -1,4 +1,4 @@
-#!/usr/local/python2.7
+#!/usr/local/bin/python2.7
 # NOTE python2.7 must be used for this script
 
 import glob,os
@@ -72,7 +72,7 @@ def remap_p5deg_to_rotated(p5deg_file,rot_template):
 
 
 # Create netcdf file on rotated grid, removing the 'sponge layer' at the edge of the domain
-def create_netcdf_stripped(template,data,outname,lat_start=4,lat_end=7,lon_start=4,lon_end=4):
+def create_netcdf_stripped(template,data,outname,lat_nwtart=4,lat_send=7,lon_nwtart=4,lon_send=4):
 	# create outfile object
 	outfile=netcdf_file(outname,'w')
 	
@@ -86,16 +86,16 @@ def create_netcdf_stripped(template,data,outname,lat_start=4,lat_end=7,lon_start
 			outfile.variables[dim][:]=template.variables[dim][:]
 			outfile.variables[dim].__setattr__('axis','T')
 		elif dim[:3]=='lat': 
-			leng=int(template.dimensions[dim])-lat_start-lat_end
+			leng=int(template.dimensions[dim])-lat_nwtart-lat_send
 			outfile.createDimension(dim,leng)
 			outfile.createVariable(dim,'f',(dim,))
-			outfile.variables[dim][:]=template.variables[dim][lat_start:-lat_end]
+			outfile.variables[dim][:]=template.variables[dim][lat_nwtart:-lat_send]
 			outfile.variables[dim].__setattr__('axis','Y')
 		elif dim[:3]=='lon' : 
-			leng=int(template.dimensions[dim])-lon_start-lon_end
+			leng=int(template.dimensions[dim])-lon_nwtart-lon_send
 			outfile.createDimension(dim,leng)
 			outfile.createVariable(dim,'f',(dim,))
-			outfile.variables[dim][:]=template.variables[dim][lon_start:-lon_end]
+			outfile.variables[dim][:]=template.variables[dim][lon_nwtart:-lon_send]
 			outfile.variables[dim].__setattr__('axis','X')
 		else: 
 			leng=int(template.dimensions[dim])
@@ -115,13 +115,13 @@ def create_netcdf_stripped(template,data,outname,lat_start=4,lat_end=7,lon_start
 	
 	# Global latitude
 	outfile.createVariable('global_latitude0','f',template.variables['global_latitude0'].dimensions)
-	outfile.variables['global_latitude0'][:]=template.variables['global_latitude0'][lat_start:-lat_end,lon_start:-lon_end]
+	outfile.variables['global_latitude0'][:]=template.variables['global_latitude0'][lat_nwtart:-lat_send,lon_nwtart:-lon_send]
 	for att in template.variables['global_latitude0']._attributes:
 			outfile.variables['global_latitude0'].__setattr__(att,template.variables['global_latitude0'].__getattribute__(att))
 			
 	# Global longitude
 	outfile.createVariable('global_longitude0','f',template.variables['global_longitude0'].dimensions)
-	outfile.variables['global_longitude0'][:]=template.variables['global_longitude0'][lat_start:-lat_end,lon_start:-lon_end]
+	outfile.variables['global_longitude0'][:]=template.variables['global_longitude0'][lat_nwtart:-lat_send,lon_nwtart:-lon_send]
 	for att in template.variables['global_longitude0']._attributes:
 			outfile.variables['global_longitude0'].__setattr__(att,template.variables['global_longitude0'].__getattribute__(att))
 	
@@ -288,7 +288,8 @@ def find_closest(p_lat,p_lon,lat_coord,lon_coord):
 
 #############################################################
 
-def plot_spacial(historical_data,natural_data,obs,lat_coord,lon_coord,folder):	
+def plot_spacial(historical_data,natural_data,obs,lat_coord,lon_coord,subfig):	
+	folder='spacial_figs'
 	# Spatially resolved count of ensembles hotter than obs:	
 	condition=historical_data>obs
 	count_hist=condition.sum(0)/(historical_data.shape[0]*1.0)
@@ -335,41 +336,53 @@ def plot_spacial(historical_data,natural_data,obs,lat_coord,lon_coord,folder):
 	meridians=[-40,-30,-20,-10,0,10,20,30,40,50,60]
 	
 	plt.figure(1)
-	plt.clf()
+	plt.subplot(subfig)
 	m.contourf(x,y,(count_hist),np.arange(0,1.05,.05),extend='both')
 	m.drawcoastlines()
 	m.drawcountries()
 	m.drawparallels(circles)
 	m.drawmeridians(meridians)
-	plt.colorbar()
-	plt.title('Probability of temperature being above 2014 temp = '+str(count_hist.mean()))
-	plt.savefig(folder+'prob_hist.png')
+	plt.suptitle('Probability of temperature being above 2014 temp = '+str(count_hist.mean()))
+        if subfig%2==1:
+                plt.title('a)')
+        else:
+                plt.title('b)')
+                plt.colorbar()
+		plt.savefig(folder+'prob_hist.png')
 		
 	plt.figure(2)
-	plt.clf()
+	plt.subplot(subfig)
 	m.contourf(x,y,(count_nat),np.arange(0,0.35,.01),extend='both')
 	m.drawcoastlines()
 	m.drawcountries()
 	m.drawparallels(circles)
 	m.drawmeridians(meridians)
-	plt.colorbar()
-	plt.title('Probability of temperature being above 2014 temp \nwith natural forcings only = '+str(count_nat.mean()))
-	plt.savefig(folder+'prob_nat.png')
+	plt.suptitle('Probability of temperature being above 2014 temp \nwith natural forcings only = '+str(count_nat.mean()))
+        if subfig%2==1:
+                plt.title('a)')
+        else:
+                plt.title('b)')
+		plt.colorbar()
+		plt.savefig(folder+'prob_nat.png')
 	
 	plt.figure(3)
-	plt.clf()
-	plt.title('Observational dataset of Temperature for 2014 = '+str(obs.mean()))
+	plt.subplot(subfig)
+	plt.suptitle('Observational dataset of Temperature for 2014 = '+str(obs.mean()))
 	m.contourf(x,y,obs,20)
 	m.drawcoastlines()
 	m.drawcountries()
 	m.drawparallels(circles)
 	m.drawmeridians(meridians)
-	plt.colorbar()
-	plt.savefig(folder+'obs.png')
+        if subfig%2==1:
+                plt.title('a)')
+        else:
+                plt.title('b)')
+		plt.colorbar()
+		plt.savefig(folder+'obs.png')
 	
 	plt.figure(4)
-	plt.clf()
-	plt.title('2014 Anomaly (Observations - Ensemble mean) = '+str(anom.mean()))
+	plt.subplot(subfig)
+	plt.suptitle('2014 Anomaly (Observations - Ensemble mean) = '+str(anom.mean()))
 	limit=max([anom.max(),abs(anom.min())])
 	contours=np.linspace(-limit,limit,20)
 	m.contourf(x,y,anom,contours)
@@ -377,12 +390,16 @@ def plot_spacial(historical_data,natural_data,obs,lat_coord,lon_coord,folder):
 	m.drawcountries()
 	m.drawparallels(circles)
 	m.drawmeridians(meridians)
-	plt.colorbar()
-	plt.savefig(folder+'anom_hist.png')
+        if subfig%2==1:
+                plt.title('a)')
+        else:
+                plt.title('b)')
+		plt.colorbar()
+		plt.savefig(folder+'anom_hist.png')
 	
 	plt.figure(8)
-	plt.clf()
-	plt.title('2014 Anomaly (Observations - Nat Ensemble mean) = '+str(anom_nat.mean()))
+	plt.subplot(subfig)
+	plt.suptitle('2014 Anomaly (Observations - Nat Ensemble mean) = '+str(anom_nat.mean()))
 	limit=max([anom_nat.max(),abs(anom_nat.min())])
 	contours=np.linspace(-limit,limit,20)
 	m.contourf(x,y,anom_nat,contours)
@@ -390,12 +407,16 @@ def plot_spacial(historical_data,natural_data,obs,lat_coord,lon_coord,folder):
 	m.drawcountries()
 	m.drawparallels(circles)
 	m.drawmeridians(meridians)
-	plt.colorbar()
-	plt.savefig(folder+'anom_nat.png')	
+        if subfig%2==1:
+                plt.title('a)')
+        else:
+                plt.title('b)')
+		plt.colorbar()
+		plt.savefig(folder+'anom_nat.png')	
 	
 	plt.figure(5)
-	plt.clf()
-	plt.title('Climatalogical bias used to bias correct model = '+str(bias.mean()))
+	plt.subplot(subfig)
+	plt.suptitle('Climatalogical bias used to bias correct model = '+str(bias.mean()))
 	limit=max([bias.max(),abs(bias.min())])
 	contours=np.linspace(-limit,limit,20)
 	m.contourf(x,y,bias,contours)
@@ -403,30 +424,47 @@ def plot_spacial(historical_data,natural_data,obs,lat_coord,lon_coord,folder):
 	m.drawcountries()
 	m.drawparallels(circles)
 	m.drawmeridians(meridians)
-	plt.colorbar()
-	plt.savefig(folder+'bias.png')
+        if subfig%2==1:
+                plt.title('a)')
+        else:
+                plt.title('b)')
+		plt.colorbar()
+		plt.savefig(folder+'bias.png')
 	
 	plt.figure(6)
-	plt.clf()
-	plt.title('FAR = '+str(far.mean()))
-	m.contourf(x,y,far,np.arange(.40,1.05,.05),extend='both')
+	ga=plt.gca()
+	plt.subplot(subfig)
+#	plt.title('FAR = '+str(far.mean()))
+	c=m.contourf(x,y,far,np.arange(.40,1.05,.05),extend='both')
 	m.drawcoastlines()
 	m.drawcountries()
 	m.drawparallels(circles)
 	m.drawmeridians(meridians)
-	plt.colorbar()
-	plt.savefig(folder+'far.png')	
+	if subfig%2==1:
+		plt.title('a)')
+	else:
+		plt.title('b)')
+		# Make an axis for the colorbar on the right side
+		cax = plt.gcf().add_axes([0.9, 0.1, 0.03, 0.8])
+		plt.colorbar(c, cax=cax)
+		plt.savefig(folder+'far.png')	
 	
 	plt.figure(7)
-	plt.clf()
-	plt.title('Change in likelihood of temp greater than 2014 ='+str(change.mean()))
-	m.contourf(x,y,change,np.arange(0,22,2),extend='both')
+	plt.subplot(subfig)
+	plt.suptitle('Change in likelihood of temp greater than 2014 ='+str(change.mean()))
+	c=m.contourf(x,y,change,np.arange(0,22,2),extend='both')
 	m.drawcoastlines()
 	m.drawcountries()
 	m.drawparallels(circles)
 	m.drawmeridians(meridians)
-	plt.colorbar()
-	plt.savefig(folder+'change_risk.png')	
+        if subfig%2==1:
+                plt.title('a)')
+        else:
+                plt.title('b)')
+                cax = plt.gcf().add_axes([0.9, 0.1, 0.03, 0.8])
+		plt.colorbar(c,cax=cax)
+		plt.tight_layout()
+		plt.savefig(folder+'change_risk.png')	
 	
 #	plt.figure(1)
 #	plt.clf()
@@ -464,17 +502,21 @@ def plot_spacial(historical_data,natural_data,obs,lat_coord,lon_coord,folder):
 #	plt.title('Ensemble min of temperature')
 #	plt.savefig(folder+'nat_max.png')
 		
-        plt.figure(1)
-        plt.clf()
+        plt.figure(9)
+        plt.subplot(subfig)
         m.contourf(x,y,historical_data.mean(0)-natural_data.mean(0))
         m.drawcoastlines()
         m.drawcountries()
-        plt.colorbar()
-        plt.title('Temperature: Historical - Nat')
-        plt.savefig(folder+'hist-nat.png')	
+        if subfig%2==1:
+                plt.title('a)')
+        else:
+                plt.title('b)')
+		plt.colorbar()
+		plt.tight_layout()
+        	plt.savefig(folder+'hist-nat.png')	
+	plt.suptitle('Temperature: Historical - Nat')
 	
-	
-def plot_region(data,lat_coord,lon_coord,lat_s,lat_e,lon_s,lon_e,region_name):
+def plot_region(data,lat_coord,lon_coord,lat_nw,lat_se,lon_nw,lon_se,region_name):
 	plt.clf()
 	circles=[30,40,50,60,70]
 	meridians=[-40,-30,-20,-10,0,10,20,30,40,50,60]
@@ -483,10 +525,10 @@ def plot_region(data,lat_coord,lon_coord,lat_s,lat_e,lon_s,lon_e,region_name):
 	x,y=m(lon_coord[:],lat_coord[:])
 	plt.title('Plotting data for region: '+region_name)
 	try:
-		m.contourf(x[lat_s:lat_e,lon_s:lon_e],y[lat_s:lat_e,lon_s:lon_e],data[lat_s:lat_e,lon_s:lon_e],20)
+		m.contourf(x[lat_nw:lat_se,lon_nw:lon_se],y[lat_nw:lat_se,lon_nw:lon_se],data[lat_nw:lat_se,lon_nw:lon_se],20)
 		plt.colorbar()
 	except:
-		m.plot(x[lat_s:lat_e,lon_s:lon_e],y[lat_s:lat_e,lon_s:lon_e],'r.') # Just put a dot at the x y point
+		m.plot(x[lat_nw:lat_se,lon_nw:lon_se],y[lat_nw:lat_se,lon_nw:lon_se],'r.') # Just put a dot at the x y point
 	m.drawcoastlines()
 	m.drawcountries()
 	m.drawparallels(circles)
@@ -496,6 +538,42 @@ def plot_region(data,lat_coord,lon_coord,lat_s,lat_e,lon_s,lon_e,region_name):
 	except:
 		pass
 	plt.savefig('check_regions/'+region_name+'.png')
+
+
+def print_region_vals(region,lat_nw,lon_nw,lat_se,lon_se,historical_data,natural_data,clim_hist_data,clim_nat_data,lat_coord,lon_coord,table):
+	#Specific regions:
+	print 'calcluating region: '+region
+	y_nw,x_nw=find_closest(lat_nw,lon_nw,lat_coord,lon_coord)
+	y_se,x_se=find_closest(lat_se,lon_se,lat_coord,lon_coord)
+	# Debug info
+	print 'veryfy start:',lat_coord[y_nw,x_nw],lon_coord[y_nw,x_nw]
+	print 'veryfy end:',lat_coord[y_se,x_se],lon_coord[y_se,x_se]
+	plot_region(historical_data[0,:],lat_coord,lon_coord,y_nw,y_se,x_nw,x_se,region)
+	# Calculate the return times
+	vals=get_region_returntimes(historical_data,natural_data,clim_hist_data,clim_nat_data,obs,x_nw,x_se,y_nw,y_se)
+	print 'return times',vals
+	print 'FAR:',1-vals[0]/vals[1],1-vals[2]/vals[3]
+#        table.write(region+' & '+str(1-vals[0]/vals[1])+' & '+str(1-vals[2]/vals[3])+'\\\\\n')
+	table.write(region+' & '+str(vals[0])+' & '+str(vals[1])+' & '+str(vals[2])+' & '+str(vals[3])+'\\\\\n')
+	
+def print_point_vals(region,lat_nw,lon_nw,historical_data,natural_data,clim_hist_data,clim_nat_data,lat_coord,lon_coord,table):
+	#Specific regions:
+	print 'calcluating region: '+region
+	lat_nw,lon_nw=find_closest(lat_nw,lon_nw,lat_coord,lon_coord)
+	lat_se=lat_nw+1
+	lon_se=lon_nw+1
+	# Debug info
+	print 'veryfy start:',lat_coord[lat_nw,lon_nw],lon_coord[lat_nw,lon_nw]
+	print 'veryfy end:',lat_coord[lat_se,lon_se],lon_coord[lat_se,lon_se]
+	plot_region(historical_data[0,:],lat_coord,lon_coord,lat_nw,lat_se,lon_nw,lon_se,region)
+	# Calculate the return times	
+	vals=get_region_returntimes(historical_data,natural_data,clim_hist_data,clim_nat_data,obs,lon_nw,lon_se,lat_nw,lat_se)
+	print 'return times',vals
+	print 'FAR:',1-vals[0]/vals[1],1-vals[2]/vals[3]
+#        table.write(region+' & '+str(1-vals[0]/vals[1])+' & '+str(1-vals[2]/vals[3])+'\\\\\n')
+	table.write(region+' & '+str(vals[0])+' & '+str(vals[1])+' & '+str(vals[2])+' & '+str(vals[3])+'\\\\\n')
+		
+		
 		
 #########################################################################
 # Main function
@@ -638,185 +716,66 @@ if __name__=='__main__':
 
 ########################################################
 # Print Diagnostics
-
-	plt.figure(1)
 	
-	hist=[]
-	nat=[]
-	clim_hist=[]
-	clim_nat=[]
-	lp=[]
+
+# Latex table of return times
+	np.set_printoptions(precision=3) #reduce number of sig figures printed
+	table=open('table.txt','w')
+	table.write('\\begin{tabular}{l c c c c}\n')
+#	table.write('Region & FAR 2014 & FAR Clim \\\\\n')
+	table.write('Region & All2014 & Nat2014 &AllClim & NatClim \\\\\n')
+	table.write('\\hline\n')
 	
 	#All of Europe
 	vals=get_returntimes(historical_data,natural_data,clim_hist_data,clim_nat_data,obs)
 	print vals
-	hist.append(vals[0])
-	nat.append(vals[1])
-	clim_hist.append(vals[2])
-	clim_nat.append(vals[3])
-	lp.append(vals[4])
-	
-	ensemble_ave=historical_data.mean(0)
-
-	
-	
+	print 'FAR:',1-vals[0]/vals[1],1-vals[2]/vals[3]
+	region= 'Europe'
+#	table.write(region+' & '+str(1-vals[0]/vals[1])+' & '+str(1-vals[2]/vals[3])+'\\\\\n')
+	table.write(region+' & '+str(vals[0])+' & '+str(vals[1])+' & '+str(vals[2])+' & '+str(vals[3])+'\\\\\n')
 	
 	#Specific regions:
-	print 'calcluating region for England...'
-	lat_s,lon_s=find_closest(59,-11,lat_coord,lon_coord)
-	lat_e,lon_e=find_closest(50,1.2,lat_coord,lon_coord)
-	print 'veryfy start:',lat_coord[lat_s,lon_s],lon_coord[lat_s,lon_s]
-	print 'veryfy end:',lat_coord[lat_e,lon_e],lon_coord[lat_e,lon_e]
-	plot_region(ensemble_ave,lat_coord,lon_coord,lat_s,lat_e,lon_s,lon_e,'England')
-	vals=get_region_returntimes(historical_data,natural_data,clim_hist_data,clim_nat_data,obs,lon_s,lon_e,lat_s,lat_e)
-	print 'return times',vals
-	print 'FAR:',1-vals[0]/vals[1],1-vals[2]/vals[3]
 	
-	print 'calculating region for Germany...'
-	lat_s,lon_s=find_closest(54.7,6.0,lat_coord,lon_coord)
-	lat_e,lon_e=find_closest(48,14.,lat_coord,lon_coord)
-#	lat_s,lon_s=find_closest(53.5,6.0,lat_coord,lon_coord)
-#	lat_e,lon_e=find_closest(46,19,lat_coord,lon_coord)
-	print 'boxes:',lat_s,lat_e,lon_s,lon_e
-	print 'veryfy start:',lat_coord[lat_s,lon_s],lon_coord[lat_s,lon_s]
-	print 'veryfy end:',lat_coord[lat_e,lon_e],lon_coord[lat_e,lon_e]
-	plot_region(ensemble_ave,lat_coord,lon_coord,lat_s,lat_e,lon_s,lon_e,'Germany')
-	vals=get_region_returntimes(historical_data,natural_data,clim_hist_data,clim_nat_data,obs,lon_s,lon_e,lat_s,lat_e)
-        print 'return times',vals
-        print 'FAR:',1-vals[0]/vals[1],1-vals[2]/vals[3]
-	
-	print 'Mediterranean...'
-	lat_s,lon_s=find_closest(45.7,0,lat_coord,lon_coord)
-	lat_e,lon_e=find_closest(34.8,28,lat_coord,lon_coord)
-	print 'veryfy start:',lat_coord[lat_s,lon_s],lon_coord[lat_s,lon_s]
-	print 'veryfy end:',lat_coord[lat_e,lon_e],lon_coord[lat_e,lon_e]
-	plot_region(ensemble_ave,lat_coord,lon_coord,lat_s,lat_e,lon_s,lon_e,'Mediterranean')
-	vals=get_region_returntimes(historical_data,natural_data,clim_hist_data,clim_nat_data,obs,lon_s,lon_e,lat_s,lat_e)
-        print 'return times',vals
-        print 'FAR:',1-vals[0]/vals[1],1-vals[2]/vals[3]
-	
-	print 'Scandanavia...'
-	lat_s,lon_s=find_closest(71,1.2,lat_coord,lon_coord)
-	lat_e,lon_e=find_closest(58.7,30.5,lat_coord,lon_coord)
-	print 'veryfy start:',lat_coord[lat_s,lon_s],lon_coord[lat_s,lon_s]
-	print 'veryfy end:',lat_coord[lat_e,lon_e],lon_coord[lat_e,lon_e]
-	plot_region(ensemble_ave,lat_coord,lon_coord,lat_s,lat_e,lon_s,lon_e,'Scandanavia')
-	vals=get_region_returntimes(historical_data,natural_data,clim_hist_data,clim_nat_data,obs,lon_s,lon_e,lat_s,lat_e)
-        print 'return times',vals
-        print 'FAR:',1-vals[0]/vals[1],1-vals[2]/vals[3]
-	
-	print 'Central europe'
-	lat_s,lon_s=find_closest(54.3,2,lat_coord,lon_coord)
-	lat_e,lon_e=find_closest(45.,35.0,lat_coord,lon_coord)
-	print 'veryfy start:',lat_coord[lat_s,lon_s],lon_coord[lat_s,lon_s]
-	print 'veryfy end:',lat_coord[lat_e,lon_e],lon_coord[lat_e,lon_e]
-	plot_region(ensemble_ave,lat_coord,lon_coord,lat_s,lat_e,lon_s,lon_e,'Central Europe')
-	vals=get_region_returntimes(historical_data,natural_data,clim_hist_data,clim_nat_data,obs,lon_s,lon_e,lat_s,lat_e)
-        print 'return times',vals
-        print 'FAR:',1-vals[0]/vals[1],1-vals[2]/vals[3]
-	
-	print 'Greece:'
-	lat_s,lon_s=find_closest(40.8,19.4,lat_coord,lon_coord)
-	lat_e,lon_e=find_closest(34.4,27.5,lat_coord,lon_coord)
-	print 'veryfy start:',lat_coord[lat_s,lon_s],lon_coord[lat_s,lon_s]
-	print 'veryfy end:',lat_coord[lat_e,lon_e],lon_coord[lat_e,lon_e]
-	plot_region(ensemble_ave,lat_coord,lon_coord,lat_s,lat_e,lon_s,lon_e,'Greece')
-	vals=get_region_returntimes(historical_data,natural_data,clim_hist_data,clim_nat_data,obs,lon_s,lon_e,lat_s,lat_e)
-        print 'return times',vals
-        print 'FAR:',1-vals[0]/vals[1],1-vals[2]/vals[3]
-	
-	print 'Italy:'	
-	lat_s,lon_s=find_closest(45.8,7.3,lat_coord,lon_coord)
-	lat_e,lon_e=find_closest(36.4,17.4,lat_coord,lon_coord)
-	print 'veryfy start:',lat_coord[lat_s,lon_s],lon_coord[lat_s,lon_s]
-	print 'veryfy end:',lat_coord[lat_e,lon_e],lon_coord[lat_e,lon_e]
-	plot_region(ensemble_ave,lat_coord,lon_coord,lat_s,lat_e,lon_s,lon_e,'Italy')
-	vals=get_region_returntimes(historical_data,natural_data,clim_hist_data,clim_nat_data,obs,lon_s,lon_e,lat_s,lat_e)
-        print 'return times',vals
-        print 'FAR:',1-vals[0]/vals[1],1-vals[2]/vals[3]
-	
-	print 'Oxford:'	
-	lat_s,lon_s=find_closest(51.7,-1.2,lat_coord,lon_coord)
-	print 'veryfy start:',lat_coord[lat_s,lon_s],lon_coord[lat_s,lon_s]
-	plot_region(ensemble_ave,lat_coord,lon_coord,lat_s,lat_s+1,lon_s,lon_s+1,'Oxford')
-	vals=get_region_returntimes(historical_data,natural_data,clim_hist_data,clim_nat_data,obs,lon_s,lon_s+1,lat_s,lat_s+1)
-        print 'return times',vals
-        print 'FAR:',1-vals[0]/vals[1],1-vals[2]/vals[3]
-	
-	
+	print_region_vals('England',59,-11,50,1.2,historical_data,natural_data,clim_hist_data,clim_nat_data,lat_coord,lon_coord,table)
+	print_region_vals('Germany',54.7,6.0,48,14.,historical_data,natural_data,clim_hist_data,clim_nat_data,lat_coord,lon_coord,table)
+	print_region_vals('Mediterranean',43.7,-5.,34.8,28,historical_data,natural_data,clim_hist_data,clim_nat_data,lat_coord,lon_coord,table)
+	print_region_vals('Scandanavia',71,1.2,58.7,30.5,historical_data,natural_data,clim_hist_data,clim_nat_data,lat_coord,lon_coord,table)
+	print_region_vals('Central EU',54.3,2,45.,35.0,historical_data,natural_data,clim_hist_data,clim_nat_data,lat_coord,lon_coord,table)
+	print_region_vals('Greece',40.8,19.4,34.4,27.5,historical_data,natural_data,clim_hist_data,clim_nat_data,lat_coord,lon_coord,table)
+	print_region_vals('Italy',45.8,7.3,36.4,17.4,historical_data,natural_data,clim_hist_data,clim_nat_data,lat_coord,lon_coord,table)
+	print_point_vals('Oxford',51.7,-1.2,historical_data,natural_data,clim_hist_data,clim_nat_data,lat_coord,lon_coord,table)
+
+# Finish up table
+	table.write('\\end{tabular}\n')
+	table.close()
+
+
 #TODO: Fix these so they match a bit better!
-	print 'EU Geert Jan:'
-	lat_s,lon_s=find_closest(76,-25,lat_coord,lon_coord)
-	lat_e,lon_e=find_closest(30,45,lat_coord,lon_coord)
-	plot_region(ensemble_ave,lat_coord,lon_coord,lat_s,lat_e,lon_s,lon_e,'EU Geert Jan')
-	print 'veryfy start:',lat_coord[lat_s,lon_s],lon_coord[lat_s,lon_s]
-	print 'veryfy end:',lat_coord[lat_e,lon_e],lon_coord[lat_e,lon_e]
-#	plot_region(ensemble_ave,lat_coord,lon_coord,lat_s,lat_e,lon_s,lon_e,'EU Geert Jan')
-	vals=get_region_returntimes(historical_data,natural_data,clim_hist_data,clim_nat_data,obs,lon_s,lon_e,lat_s,lat_e)
-	print vals	
+#	print 'EU Geert Jan:'
+#	lat_nw,lon_nw=find_closest(76,-25,lat_coord,lon_coord)
+#	lat_se,lon_se=find_closest(30,45,lat_coord,lon_coord)
+#	plot_region(ensemble_ave,lat_coord,lon_coord,lat_nw,lat_se,lon_nw,lon_se,'EU Geert Jan')
+#	print 'veryfy start:',lat_coord[lat_nw,lon_nw],lon_coord[lat_nw,lon_nw]
+#	print 'veryfy end:',lat_coord[lat_se,lon_se],lon_coord[lat_se,lon_se]
+#	plot_region(ensemble_ave,lat_coord,lon_coord,lat_nw,lat_se,lon_nw,lon_se,'EU Geert Jan')
+#	vals=get_region_returntimes(historical_data,natural_data,clim_hist_data,clim_nat_data,obs,lon_nw,lon_se,lat_nw,lat_se)
+#	print vals	
 	
-	print 'EU Karoly:'	
-	lat_s,lon_s=find_closest(75,-12,lat_coord,lon_coord)
-	lat_e,lon_e=find_closest(30,45,lat_coord,lon_coord)
-	print 'veryfy start:',lat_coord[lat_s,lon_s],lon_coord[lat_s,lon_s]
-	print 'veryfy end:',lat_coord[lat_e,lon_e],lon_coord[lat_e,lon_e]
+#	print 'EU Karoly:'	
+#	lat_nw,lon_nw=find_closest(75,-12,lat_coord,lon_coord)
+#	lat_se,lon_se=find_closest(30,45,lat_coord,lon_coord)
+#	print 'veryfy start:',lat_coord[lat_nw,lon_nw],lon_coord[lat_nw,lon_nw]
+#	print 'veryfy end:',lat_coord[lat_se,lon_se],lon_coord[lat_se,lon_se]
 #	reg_karoly=np.nan*(lat_coord<30 or lat_coord>75 or lon_coord >45 and lon_coord<348)
 #	plot_region(ensemble_ave*reg_karoly,lat_coord,lon_coord,0,-1,0,-1,'EU Karoly')
-	vals=get_region_returntimes(historical_data,natural_data,clim_hist_data,clim_nat_data,obs,lon_s,lon_e,lat_s,lat_e)
-	print vals	
+#	vals=get_region_returntimes(historical_data,natural_data,clim_hist_data,clim_nat_data,obs,lon_nw,lon_se,lat_nw,lat_se)
+#	print vals	
 	
-	print 'lat_coords,lon_coords:',lat_coord[0,0],lon_coord[0,0],lat_coord[-1,-1],lon_coord[-1,-1]		
+#	print 'lat_coords,lon_coords:',lat_coord[0,0],lon_coord[0,0],lat_coord[-1,-1],lon_coord[-1,-1]		
 	
-	
-	# Some random regions
-#	for i in range(50):
-#		try:
-#			vals=get_region_returntimes(historical_data,natural_data,clim_hist_data,clim_nat_data,obs,50-i,51+i,0,-1)
-#			vals=get_region_returntimes(historical_data,natural_data,clim_hist_data,clim_nat_data,obs,0,-1,50-i,51+i)
-#			vals=get_region_returntimes(historical_data,natural_data,clim_hist_data,clim_nat_data,obs,50-i,51+i,50-i,51+i)
-#			vals=get_region_returntimes(historical_data,natural_data,clim_hist_data,clim_nat_data,obs,70,71+i,39-i,40+i)
-#		except: 
-#			continue
-#		if vals[4]>0:
-#			hist.append(vals[0])
-#			nat.append(vals[1])
-#			clim_hist.append(vals[2])
-#			clim_nat.append(vals[3])
-#			lp.append(vals[4])
-			
-	# Some other random regions
-#	for i in range(50):
-#		try:
-#			vals=get_region_returntimes(historical_data,natural_data,clim_hist_data,clim_nat_data,obs,50-1,51+i,0,-1)
-#		except: 
-#			continue
-#		if vals[4]>0:
-#			hist.append(vals[0])
-#			nat.append(vals[1])
-#			clim_hist.append(vals[2])
-#			clim_nat.append(vals[3])
-#			lp.append(vals[4])
-		
-######################################################
-# Plot stuff
+########################################
+#  Plot the spacial plots
 
-#First get rid of annoying Mac hidden files
-	delfiles=glob.glob('._*.png')
-	for f in delfiles:
-		os.remove(f)
-		
-	plt.figure(1)
-	plt.plot(lp,hist,'.',label='hist')
-	plt.plot(lp,nat,'.',label='nat')
-	plt.plot(lp,clim_hist,'.',label='clim_hist')
-	plt.plot(lp,clim_nat,'.',label='clim_nat')
-	plt.title('return time vs size of region')
-	plt.legend()
-	plt.ylim([0,700])
-	plt.savefig('figure1.png')
-		
+	plot_spacial(historical_data,natural_data,obs,lat_coord,lon_coord,121)
+	plot_spacial(clim_hist_data,clim_nat_data,obs,lat_coord,lon_coord,122)
 
-	plot_spacial(historical_data,natural_data,obs,lat_coord,lon_coord,'spacial_figs_2014')
-	plot_spacial(clim_hist_data,clim_nat_data,obs,lat_coord,lon_coord,'spacial_figs_clim')
-
-	#plt.show()
