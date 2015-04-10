@@ -11,6 +11,8 @@ import matplotlib.pyplot as plt
 import pickle
 from mpl_toolkits.basemap import Basemap,cm
 
+pkl_dir='/gpfs/projects/cpdn/scratch/cenv0437/pickle_data/'
+
 # Takes 4 seasonal bias files and calculates a yearly average
 def ave_bias(bias_files):
 	data=np.ma.zeros([108,114])
@@ -57,8 +59,8 @@ def remap_p5deg_to_rotated(p5deg_file,rot_template):
 	f_rot=netcdf_file(rot_template,'r')
 	g_lat=f_rot.variables['global_latitude0'][4:-7,4:-4]
 	g_lon=f_rot.variables['global_longitude0'][4:-7,4:-4]
-	p5deg_nc=netcdf_file(p5deg_file,'r').variables['tasmean']
-	p5deg_data=p5deg_nc[0,:]
+	p5deg_nc=netcdf_file(p5deg_file,'r').variables['tmp']
+	p5deg_data=p5deg_nc[:12,:].mean(0)
 	print p5deg_data.shape
 	dataout=np.zeros([108,114])
 	for i in range(114):
@@ -238,9 +240,14 @@ def print_model_returntimes(natural_data,obs):
 def print_region_returntimes(historical_data,natural_data,clim_hist_data,clim_nat_data,obs,xmin,xmax,ymin,ymax):
 	print_returntimes(historical_data[:,ymin:ymax,xmin:xmax],natural_data[:,ymin:ymax,xmin:xmax],clim_hist_data[:,ymin:ymax,xmin:xmax],clim_nat_data[:,ymin:ymax,xmin:xmax],obs[ymin:ymax,xmin:xmax])
 
-
 def get_region_returntimes(historical_data,natural_data,clim_hist_data,clim_nat_data,obs,xmin,xmax,ymin,ymax):
 	return get_returntimes(historical_data[:,ymin:ymax,xmin:xmax],natural_data[:,ymin:ymax,xmin:xmax],clim_hist_data[:,ymin:ymax,xmin:xmax],clim_nat_data[:,ymin:ymax,xmin:xmax],obs[ymin:ymax,xmin:xmax])
+
+def get_region_returntimes2(historical_data,natural_data,clim_hist_data,clim_nat_data,obs,xmin,xmax,ymin,ymax):
+	a,b,c,d,e=get_returntimes(historical_data[:,ymin:ymax,xmin:xmax],natural_data[:,ymin:ymax,xmin:xmax],clim_hist_data[:,ymin:ymax,xmin:xmax],clim_nat_data[:,ymin:ymax,xmin:xmax],obs[ymin:ymax,xmin:xmax])
+	f=historical_data[:,ymin:ymax,xmin:xmax].mean(1).mean(1).std(0)
+	g=natural_data[:,ymin:ymax,xmin:xmax].mean(1).mean(1).std(0)
+	return a,b,c,d,e,f,g
 
 
 def get_returntimes(historical_data,natural_data,clim_hist_data,clim_nat_data,obs):
@@ -288,8 +295,8 @@ def find_closest(p_lat,p_lon,lat_coord,lon_coord):
 
 #############################################################
 
-def plot_spacial(historical_data,natural_data,obs,lat_coord,lon_coord,subfig):	
-	folder='spacial_figs'
+def plot_spacial(historical_data,natural_data,obs,lat_coord,lon_coord,subfig,obsname):	
+	folder='spacial_figs_'+obsname
 	# Spatially resolved count of ensembles hotter than obs:	
 	condition=historical_data>obs
 	count_hist=condition.sum(0)/(historical_data.shape[0]*1.0)
@@ -307,10 +314,11 @@ def plot_spacial(historical_data,natural_data,obs,lat_coord,lon_coord,subfig):
 	anom_nat=obs-(natural_data.mean(0))
 
 	# FAR
-        far=1.0-((count_nat)/(count_hist))
-#	far=1.0-((count_nat)/(count_hist+1e-15))
+#        far=1.0-((count_nat)/(count_hist)) # Areas where count_hist =0 -> NaN
+
+	far=1.0-((count_nat)/(count_hist+1e-15))
 #	far=far*(np.logical_or(count_hist!=0.0,count_nat!=0.0)*1.0) # Set to zero where count_hist and count_nat==0
-#	far=far*((count_hist!=0.0)*1.0)
+	far=far*((count_hist!=0.0)*1.0)   # Set to zero where count_hist=0
 	#sanity check
 #	print 'sanity check of FAR, should be 0', np.logical_and(count_hist==0.0 and count_nat!=0.0).sum()
 ################################################
@@ -342,7 +350,7 @@ def plot_spacial(historical_data,natural_data,obs,lat_coord,lon_coord,subfig):
 	m.drawcountries()
 	m.drawparallels(circles)
 	m.drawmeridians(meridians)
-	plt.suptitle('Probability of temperature being above 2014 temp = '+str(count_hist.mean()))
+	plt.suptitle('Probability of temperature being above 2014 temp = '+'{:.2f}'.format(count_hist.mean()))
         if subfig%2==1:
                 plt.title('a)')
         else:
@@ -357,7 +365,7 @@ def plot_spacial(historical_data,natural_data,obs,lat_coord,lon_coord,subfig):
 	m.drawcountries()
 	m.drawparallels(circles)
 	m.drawmeridians(meridians)
-	plt.suptitle('Probability of temperature being above 2014 temp \nwith natural forcings only = '+str(count_nat.mean()))
+	plt.suptitle('Probability of temperature being above 2014 temp \nwith natural forcings only = '+'{:.2f}'.format(count_nat.mean()))
         if subfig%2==1:
                 plt.title('a)')
         else:
@@ -367,7 +375,7 @@ def plot_spacial(historical_data,natural_data,obs,lat_coord,lon_coord,subfig):
 	
 	plt.figure(3)
 	plt.subplot(subfig)
-	plt.suptitle('Observational dataset of Temperature for 2014 = '+str(obs.mean()))
+	plt.suptitle('Observational dataset of Temperature for 2014 = '+'{:.2f}'.format(obs.mean()))
 	m.contourf(x,y,obs,20)
 	m.drawcoastlines()
 	m.drawcountries()
@@ -382,7 +390,7 @@ def plot_spacial(historical_data,natural_data,obs,lat_coord,lon_coord,subfig):
 	
 	plt.figure(4)
 	plt.subplot(subfig)
-	plt.suptitle('2014 Anomaly (Observations - Ensemble mean) = '+str(anom.mean()))
+	plt.suptitle('2014 Anomaly (Observations - Ensemble mean) = '+'{:.2f}'.format(anom.mean()))
 	limit=max([anom.max(),abs(anom.min())])
 	contours=np.linspace(-limit,limit,20)
 	m.contourf(x,y,anom,contours)
@@ -399,7 +407,7 @@ def plot_spacial(historical_data,natural_data,obs,lat_coord,lon_coord,subfig):
 	
 	plt.figure(8)
 	plt.subplot(subfig)
-	plt.suptitle('2014 Anomaly (Observations - Nat Ensemble mean) = '+str(anom_nat.mean()))
+	plt.suptitle('2014 Anomaly (Observations - Nat Ensemble mean) = '+'{:.2f}'.format(anom_nat.mean()))
 	limit=max([anom_nat.max(),abs(anom_nat.min())])
 	contours=np.linspace(-limit,limit,20)
 	m.contourf(x,y,anom_nat,contours)
@@ -416,7 +424,7 @@ def plot_spacial(historical_data,natural_data,obs,lat_coord,lon_coord,subfig):
 	
 	plt.figure(5)
 	plt.subplot(subfig)
-	plt.suptitle('Climatalogical bias used to bias correct model = '+str(bias.mean()))
+	plt.suptitle('Climatalogical bias used to bias correct model = '+'{:.2f}'.format(bias.mean()))
 	limit=max([bias.max(),abs(bias.min())])
 	contours=np.linspace(-limit,limit,20)
 	m.contourf(x,y,bias,contours)
@@ -434,7 +442,7 @@ def plot_spacial(historical_data,natural_data,obs,lat_coord,lon_coord,subfig):
 	plt.figure(6)
 	ga=plt.gca()
 	plt.subplot(subfig)
-#	plt.title('FAR = '+str(far.mean()))
+#	plt.title('FAR = '+'{:.2f}'.format(far.mean()))
 	c=m.contourf(x,y,far,np.arange(.40,1.05,.05),extend='both')
 	m.drawcoastlines()
 	m.drawcountries()
@@ -451,7 +459,7 @@ def plot_spacial(historical_data,natural_data,obs,lat_coord,lon_coord,subfig):
 	
 	plt.figure(7)
 	plt.subplot(subfig)
-	plt.suptitle('Change in likelihood of temp greater than 2014 ='+str(change.mean()))
+	plt.suptitle('Change in likelihood of temp greater than 2014 ='+'{:.2f}'.format(change.mean()))
 	c=m.contourf(x,y,change,np.arange(0,22,2),extend='both')
 	m.drawcoastlines()
 	m.drawcountries()
@@ -553,8 +561,8 @@ def print_region_vals(region,lat_nw,lon_nw,lat_se,lon_se,historical_data,natural
 	vals=get_region_returntimes(historical_data,natural_data,clim_hist_data,clim_nat_data,obs,x_nw,x_se,y_nw,y_se)
 	print 'return times',vals
 	print 'FAR:',1-vals[0]/vals[1],1-vals[2]/vals[3]
-#        table.write(region+' & '+str(1-vals[0]/vals[1])+' & '+str(1-vals[2]/vals[3])+'\\\\\n')
-	table.write(region+' & '+str(vals[0])+' & '+str(vals[1])+' & '+str(vals[2])+' & '+str(vals[3])+'\\\\\n')
+#        table.write(region+' & '+'{:.2f}'.format(1-vals[0]/vals[1])+' & '+'{:.2f}'.format(1-vals[2]/vals[3])+'\\\\\n')
+	table.write(region+' & '+'{:.2f}'.format(vals[0])+' & '+'{:.2f}'.format(vals[1])+' & '+'{:.3f}'.format(1-vals[0]/vals[1])+' & '+'{:.2f}'.format(vals[2])+' & '+'{:.2f}'.format(vals[3])+' & '+'{:.3f}'.format(1-vals[2]/vals[3])+'\\\\\n')	
 	
 def print_point_vals(region,lat_nw,lon_nw,historical_data,natural_data,clim_hist_data,clim_nat_data,lat_coord,lon_coord,table):
 	#Specific regions:
@@ -570,9 +578,8 @@ def print_point_vals(region,lat_nw,lon_nw,historical_data,natural_data,clim_hist
 	vals=get_region_returntimes(historical_data,natural_data,clim_hist_data,clim_nat_data,obs,lon_nw,lon_se,lat_nw,lat_se)
 	print 'return times',vals
 	print 'FAR:',1-vals[0]/vals[1],1-vals[2]/vals[3]
-#        table.write(region+' & '+str(1-vals[0]/vals[1])+' & '+str(1-vals[2]/vals[3])+'\\\\\n')
-	table.write(region+' & '+str(vals[0])+' & '+str(vals[1])+' & '+str(vals[2])+' & '+str(vals[3])+'\\\\\n')
-		
+#        table.write(region+' & '+'{:.2f}'.format(1-vals[0]/vals[1])+' & '+'{:.2f}'.format(1-vals[2]/vals[3])+'\\\\\n')
+	table.write(region+' & '+'{:.2f}'.format(vals[0])+' & '+'{:.2f}'.format(vals[1])+' & '+'{:.3f}'.format(1-vals[0]/vals[1])+' & '+'{:.2f}'.format(vals[2])+' & '+'{:.2f}'.format(vals[3])+' & '+'{:.3f}'.format(1-vals[2]/vals[3])+'\\\\\n')	
 		
 		
 #########################################################################
@@ -591,7 +598,17 @@ if __name__=='__main__':
 ################  Observations
 	
 	# Obs using higher resolution cru.ts climatology
-	obs_p5deg='/home/cenv0437/scratch/data_from_ouce/CRU_TS_dec13-nov14_crut4anomalies.nc'
+#	obs_p5deg='/home/cenv0437/scratch/data_from_ouce/CRU_TS_dec13-nov14_crut4anomalies.nc'
+
+
+#	obs_p5deg='/home/cenv0437/scratch/data_from_ouce/CRU_TS_Absolute_plus_BEST_anomaly_201312_201412.nc'
+#	obsname='BEST'
+	
+#	obs_p5deg='/home/cenv0437/scratch/data_from_ouce/CRU_TS_Absolute_plus_CRU4_anomaly_201312_201412.nc'
+#	obsname='CRU4'
+	
+	obs_p5deg='/home/cenv0437/scratch/data_from_ouce/CRU_TS_Absolute_plus_GISS_anomaly_201312_201412.nc'
+	obsname='GISS'	
 
 	# Regrid obs to rotated regional grid
 	rot_template='/home/cenv0437/scratch/data_from_ouce/hadam3p_eu_z4ao_2013_1_009238311_0_tasmean.nc'
@@ -628,15 +645,18 @@ if __name__=='__main__':
 #################  Model Data:
 
 	read_data=False
-	if read_data or not os.path.exists('historical_data.pkl'):
+	if read_data or not os.path.exists(pkl_dir+'historical_data.pkl'):
 
 		infiles=glob.glob('/home/cenv0437/scratch/batch_100/hadam3p_eu_*_tasmean.nc')
 		# Have to choose ensemble members by umid
 		historical_files=choose_tasknames(infiles,'z200','z2gn')+choose_tasknames(infiles,'z4c0','z4sn')
 		natural_files=[x for x in infiles if x not in historical_files]
 
-		clim_hist_files=glob.glob('/home/cenv0437/scratch/batch_43/hadam3p_eu_*_tasmean.nc')
-		clim_nat_files=glob.glob('/home/cenv0437/scratch/batch_45/hadam3p_eu_*_tasmean.nc')
+		historical_files=historical_files+glob.glob('/home/cenv0437/scratch/batch_166/hadam3p_eu_????_*_tasmean.nc') #addition from batch 166
+
+
+		clim_hist_files=glob.glob('/home/cenv0437/scratch/batch_43/hadam3p_eu_????_1999_tasmean.nc')+glob.glob('/home/cenv0437/scratch/batch_43/hadam3p_eu_????_20*_tasmean.nc')
+		clim_nat_files=glob.glob('/home/cenv0437/scratch/batch_45/hadam3p_eu_????_1999_tasmean.nc')+glob.glob('/home/cenv0437/scratch/batch_45/hadam3p_eu_????_20*_tasmean.nc')
 	
 #################################################
 # Load Data	
@@ -673,30 +693,30 @@ if __name__=='__main__':
 		print 'loaded natural 1985-2011 data...'
 		
 		# Write data to pickle
-		fdata=open('historical_data.pkl','wb')
+		fdata=open(pkl_dir+'historical_data.pkl','wb')
 		pickle.dump(historical_data,fdata,-1)
 		fdata.close()
-		fdata=open('natural_data.pkl','wb')
+		fdata=open(pkl_dir+'natural_data.pkl','wb')
 		pickle.dump(natural_data,fdata,-1)
 		fdata.close()
-		fdata=open('clim_hist_data.pkl','wb')
+		fdata=open(pkl_dir+'clim_hist_data.pkl','wb')
 		pickle.dump(clim_hist_data,fdata,-1)
 		fdata.close()
-		fdata=open('clim_nat_data.pkl','wb')
+		fdata=open(pkl_dir+'clim_nat_data.pkl','wb')
 		pickle.dump(clim_nat_data,fdata,-1)
 		fdata.close()
 
 	else: #load from pickle
-		fdata=open('historical_data.pkl','rb')
+		fdata=open(pkl_dir+'historical_data.pkl','rb')
 		historical_data=pickle.load(fdata)
 		fdata.close()
-		fdata=open('natural_data.pkl','rb')
+		fdata=open(pkl_dir+'natural_data.pkl','rb')
 		natural_data=pickle.load(fdata)
 		fdata.close()
-		fdata=open('clim_hist_data.pkl','rb')
+		fdata=open(pkl_dir+'clim_hist_data.pkl','rb')
 		clim_hist_data=pickle.load(fdata)
 		fdata.close()
-		fdata=open('clim_nat_data.pkl','rb')
+		fdata=open(pkl_dir+'clim_nat_data.pkl','rb')
 		clim_nat_data=pickle.load(fdata)
 		fdata.close()
 		print 'loaded data from pkl files'
@@ -721,9 +741,9 @@ if __name__=='__main__':
 # Latex table of return times
 	np.set_printoptions(precision=3) #reduce number of sig figures printed
 	table=open('table.txt','w')
-	table.write('\\begin{tabular}{l c c c c}\n')
+	table.write('\\begin{tabular}{l c c c c c c}\n')
 #	table.write('Region & FAR 2014 & FAR Clim \\\\\n')
-	table.write('Region & All2014 & Nat2014 &AllClim & NatClim \\\\\n')
+	table.write('Region & All2014 & Nat2014 & FAR2014 & AllClim & NatClim & FARClim \\\\\n')
 	table.write('\\hline\n')
 	
 	#All of Europe
@@ -731,9 +751,8 @@ if __name__=='__main__':
 	print vals
 	print 'FAR:',1-vals[0]/vals[1],1-vals[2]/vals[3]
 	region= 'Europe'
-#	table.write(region+' & '+str(1-vals[0]/vals[1])+' & '+str(1-vals[2]/vals[3])+'\\\\\n')
-	table.write(region+' & '+str(vals[0])+' & '+str(vals[1])+' & '+str(vals[2])+' & '+str(vals[3])+'\\\\\n')
-	
+#	table.write(region+' & '+'{:.2f}'.format(1-vals[0]/vals[1])+' & '+'{:.2f}'.format(1-vals[2]/vals[3])+'\\\\\n')
+	table.write(region+' & '+'{:.2f}'.format(vals[0])+' & '+'{:.2f}'.format(vals[1])+' & '+'{:.3f}'.format(1-vals[0]/vals[1])+' & '+'{:.2f}'.format(vals[2])+' & '+'{:.2f}'.format(vals[3])+' & '+'{:.3f}'.format(1-vals[2]/vals[3])+'\\\\\n')	
 	#Specific regions:
 	
 	print_region_vals('England',59,-11,50,1.2,historical_data,natural_data,clim_hist_data,clim_nat_data,lat_coord,lon_coord,table)
@@ -776,6 +795,6 @@ if __name__=='__main__':
 ########################################
 #  Plot the spacial plots
 
-	plot_spacial(historical_data,natural_data,obs,lat_coord,lon_coord,121)
-	plot_spacial(clim_hist_data,clim_nat_data,obs,lat_coord,lon_coord,122)
+	plot_spacial(historical_data,natural_data,obs,lat_coord,lon_coord,121,obsname)
+	plot_spacial(clim_hist_data,clim_nat_data,obs,lat_coord,lon_coord,122,obsname)
 
