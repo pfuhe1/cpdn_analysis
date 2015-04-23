@@ -254,10 +254,7 @@ if __name__=='__main__':
 	bias_files='/home/cenv0437/scratch/data_from_ouce/EU_???_temp-cruts_0.44_mean.nc'
 	bias = ave_bias(bias_files)[:,:]
 	
-	
 ################  Observations
-	
-
 
 	# Obs using higher resolution cru.ts climatology
 	obs_p5deg='/home/cenv0437/scratch/data_from_ouce/CRU_TS_dec13-nov14_crut4anomalies.nc'
@@ -266,7 +263,6 @@ if __name__=='__main__':
 	rot_template='/home/cenv0437/scratch/data_from_ouce/hadam3p_eu_z4ao_2013_1_009238311_0_tasmean.nc'
 	
 	obs=remap_p5deg_to_rotated(obs_p5deg,rot_template)[:,:]
-
 
 #################  Model Data:
 

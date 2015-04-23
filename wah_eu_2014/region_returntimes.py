@@ -141,14 +141,50 @@ def land_points(obs):
 	#number of land points
 	return np.logical_not(obs.mask).sum()
 
+#################
+
 # Calculate the return time of the mean of the data being greater than an observational dataset
 def ret_time(data,obs):
 
-	ensembles=data.shape[0]*1.0 # First dimension of data is for ensembles. 
+	ensembles=data.shape[0]*1.0 # number of ensembles. 
 	try:
 		return ensembles/(data.mean(1).mean(1)>obs.mean(0).mean(0)).sum(0)
 	except:
 		return np.inf
+
+#################
+
+# Calculate the return time of the mean of the data being greater than an observational dataset
+def ret_time_sampled(data,obs):
+
+	ensembles=data.shape[0]*1.0 # number of ensembles. 
+	samples=200 # Number of subsamples to try
+	samplenumber=ensembles*2/3 # number of ensemble members in each sample
+	samplecounts=np.zeros([samples]) # array for counts of each sample
+	samplechoice=np.concatenate((np.ones([samples]),np.zeros([ensembles-samples])))==1.
+
+	counts=data.mean(1).mean(1)>obs.mean(0).mean(0)
+	# Now subsample counts to get an idea of the uncertainty:
+	for i in range(samples):
+		np.random.shuffle(samplechoice) # random choice of ensemble members
+		samplecounts[i]=counts[samplechoice].sum(0)
+		
+	samplecounts=samples/samplecounts # convert to ret time
+	samplecounts=np.sort(samplecounts)
+	try:
+		val=ensembles/counts.sum(0)
+	except:
+		val=1.e20
+	min=samplecounts[int(5*samples/100)] # 5th percentile
+	max=samplecounts[-int(5*samples/100)] # 95th percentile
+	
+#	if val==np.inf: val=1.e20
+	if max==np.inf: max=1.e20
+	if min==np.inf: min=1.e20
+	return min,val,max
+#	mean=samplecounts.mean()
+#	std=samplecounts.std()
+#	return mean-2.*std,ensembles/counts.sum(0),mean+2.*std
 
 #################
 
@@ -249,6 +285,16 @@ def get_region_returntimes2(historical_data,natural_data,clim_hist_data,clim_nat
 	g=natural_data[:,ymin:ymax,xmin:xmax].mean(1).mean(1).std(0)
 	return a,b,c,d,e,f,g
 
+def get_region_returntimes_sampled(historical_data,natural_data,clim_hist_data,clim_nat_data,obs,xmin,xmax,ymin,ymax):
+	return get_returntimes_sampled(historical_data[:,ymin:ymax,xmin:xmax],natural_data[:,ymin:ymax,xmin:xmax],clim_hist_data[:,ymin:ymax,xmin:xmax],clim_nat_data[:,ymin:ymax,xmin:xmax],obs[ymin:ymax,xmin:xmax])
+
+def get_returntimes_sampled(historical_data,natural_data,clim_hist_data,clim_nat_data,obs):
+	ret_hist=ret_time_sampled(historical_data,obs)
+	ret_nat=ret_time_sampled(natural_data,obs)
+	ret_clim_hist=ret_time_sampled(clim_hist_data,obs)
+	ret_clim_nat=ret_time_sampled(clim_nat_data,obs)
+	lp=land_points(obs)
+	return ret_hist,ret_nat,ret_clim_hist,ret_clim_nat,lp
 
 def get_returntimes(historical_data,natural_data,clim_hist_data,clim_nat_data,obs):
 	ret_hist=ret_time(historical_data,obs)
@@ -314,11 +360,11 @@ def plot_spacial(historical_data,natural_data,obs,lat_coord,lon_coord,subfig,obs
 	anom_nat=obs-(natural_data.mean(0))
 
 	# FAR
-#        far=1.0-((count_nat)/(count_hist)) # Areas where count_hist =0 -> NaN
+	far=1.0-((count_nat)/(count_hist)) # Areas where count_hist =0 -> NaN
 
-	far=1.0-((count_nat)/(count_hist+1e-15))
-#	far=far*(np.logical_or(count_hist!=0.0,count_nat!=0.0)*1.0) # Set to zero where count_hist and count_nat==0
-	far=far*((count_hist!=0.0)*1.0)   # Set to zero where count_hist=0
+#	far=1.0-((count_nat)/(count_hist+1e-15))
+##	far=far*(np.logical_or(count_hist!=0.0,count_nat!=0.0)*1.0) # Set to zero where count_hist and count_nat==0
+#	far=far*((count_hist!=0.0)*1.0)   # Set to zero where count_hist=0
 	#sanity check
 #	print 'sanity check of FAR, should be 0', np.logical_and(count_hist==0.0 and count_nat!=0.0).sum()
 ################################################
@@ -338,6 +384,13 @@ def plot_spacial(historical_data,natural_data,obs,lat_coord,lon_coord,subfig,obs
 	# Stereographic projection. lon_0 and lat_0 are the central points
 #	m = Basemap(projection='stere',lon_0=lon_coord[ny/2,nx/2]+7.0,lat_0=lat_coord[ny/2,nx/2]-5.0,resolution='c',llcrnrlon=lon_coord[-1,0],llcrnrlat=lat_coord[-1,0],urcrnrlon=lon_coord[0,-1],urcrnrlat=lat_coord[0,-1])
 	m = Basemap(projection='stere',lon_0=lon_coord[ny/2,nx/2]+7.0,lat_0=lat_coord[ny/2,nx/2],resolution='c',llcrnrlon=lon_coord[-1,0],llcrnrlat=lat_coord[-1,0]+2.0,urcrnrlon=lon_coord[0,-1]-7.0,urcrnrlat=lat_coord[0,-1])
+	print 'lon0=',lon_coord[ny/2,nx/2]+7.0
+	print 'lat0=',lat_coord[ny/2,nx/2]
+	print 'llcrnrlon=',lon_coord[-1,0]
+	print 'llcrnrlat=',lat_coord[-1,0]+2.0
+	print 'urcrnrlon=',lon_coord[0,-1]-7.0
+	print 'urcrnrlat=',lat_coord[0,-1]
+	
 	x,y=m(lon_coord[:],lat_coord[:])
 	plt.set_cmap('coolwarm')		
 	circles=[30,40,50,60,70]
@@ -440,8 +493,9 @@ def plot_spacial(historical_data,natural_data,obs,lat_coord,lon_coord,subfig,obs
 		plt.savefig(folder+'bias.png')
 	
 	plt.figure(6)
-	ga=plt.gca()
+
 	plt.subplot(subfig)
+	far_axes.append(plt.gca())
 #	plt.title('FAR = '+'{:.2f}'.format(far.mean()))
 	c=m.contourf(x,y,far,np.arange(.40,1.05,.05),extend='both')
 	m.drawcoastlines()
@@ -453,8 +507,9 @@ def plot_spacial(historical_data,natural_data,obs,lat_coord,lon_coord,subfig,obs
 	else:
 		plt.title('b)')
 		# Make an axis for the colorbar on the right side
-		cax = plt.gcf().add_axes([0.9, 0.1, 0.03, 0.8])
-		plt.colorbar(c, cax=cax)
+#		cax = plt.gcf().add_axes([0.9, 0.1, 0.03, 0.8])
+#		plt.colorbar(c, cax=cax)
+		plt.colorbar(c,orientation='horizontal',ax=far_axes,aspect=40,pad=0.05)
 		plt.savefig(folder+'far.png')	
 	
 	plt.figure(7)
@@ -601,14 +656,14 @@ if __name__=='__main__':
 #	obs_p5deg='/home/cenv0437/scratch/data_from_ouce/CRU_TS_dec13-nov14_crut4anomalies.nc'
 
 
-#	obs_p5deg='/home/cenv0437/scratch/data_from_ouce/CRU_TS_Absolute_plus_BEST_anomaly_201312_201412.nc'
-#	obsname='BEST'
+	obs_p5deg= '/home/cenv0437/scratch/data_from_ouce/CRU_TS_Absolute_plus_BEST_anomaly_201312_201412.nc'
+	obsname='BEST'
 	
-#	obs_p5deg='/home/cenv0437/scratch/data_from_ouce/CRU_TS_Absolute_plus_CRU4_anomaly_201312_201412.nc'
+#	obs_p5deg= '/home/cenv0437/scratch/data_from_ouce/CRU_TS_Absolute_plus_CRU4_anomaly_201312_201412.nc'
 #	obsname='CRU4'
 	
-	obs_p5deg='/home/cenv0437/scratch/data_from_ouce/CRU_TS_Absolute_plus_GISS_anomaly_201312_201412.nc'
-	obsname='GISS'	
+#	obs_p5deg= '/home/cenv0437/scratch/data_from_ouce/CRU_TS_Absolute_plus_GISS_anomaly_201312_201412.nc'
+#	obsname='GISS'	
 
 	# Regrid obs to rotated regional grid
 	rot_template='/home/cenv0437/scratch/data_from_ouce/hadam3p_eu_z4ao_2013_1_009238311_0_tasmean.nc'
@@ -720,6 +775,10 @@ if __name__=='__main__':
 		clim_nat_data=pickle.load(fdata)
 		fdata.close()
 		print 'loaded data from pkl files'
+		print 'hist2014',historical_data.shape[0]
+		print 'nat2014',natural_data.shape[0]
+		print 'histClim',clim_hist_data.shape[0]
+		print 'natClim',clim_nat_data.shape[0]
 		
 		
 #		for i in range(clim_nat_data.shape[0]):
@@ -795,6 +854,7 @@ if __name__=='__main__':
 ########################################
 #  Plot the spacial plots
 
+	far_axes=[]
 	plot_spacial(historical_data,natural_data,obs,lat_coord,lon_coord,121,obsname)
 	plot_spacial(clim_hist_data,clim_nat_data,obs,lat_coord,lon_coord,122,obsname)
 
