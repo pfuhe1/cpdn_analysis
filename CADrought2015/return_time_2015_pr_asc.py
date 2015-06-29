@@ -76,7 +76,7 @@ def return_time_swe(hist_data,clim_data,nat_data):
 #	print 'histx',x_data_all.min(),x_data_all.max()
 	conf_all = calc_return_time_confidences(hist_data,
 											direction="ascending",bsn=1e3)  
-	l1=ax.loglog(x_data_all,y_data_all, marker='o',markersize=7,
+	l1=ax.semilogx(x_data_all,y_data_all, marker='o',markersize=7,
 				   linestyle='None',mec=allf_mec,mfc=season_col_allf,
 				   color=season_col_allf,fillstyle='full',
 				   label="Historical",zorder=5)
@@ -90,7 +90,7 @@ def return_time_swe(hist_data,clim_data,nat_data):
 											   period=1)
 	conf_all = calc_return_time_confidences(clim_data,
 											direction="ascending",bsn=1e3)  
-	l1=ax.loglog(x_data_all,y_data_all, marker='o',markersize=7,
+	l1=ax.semilogx(x_data_all,y_data_all, marker='o',markersize=7,
 				   linestyle='None',mec=clim_mec,mfc=season_col_clim,
 				   color=season_col_clim,fillstyle='full',
 				   label="Clim SSTs",zorder=5)
@@ -105,7 +105,7 @@ def return_time_swe(hist_data,clim_data,nat_data):
 											   period=1)
 	conf_all = calc_return_time_confidences(nat_data,
 											direction="ascending",bsn=1e3)  
-	l1=ax.loglog(x_data_all,y_data_all, marker='o',markersize=7,
+	l1=ax.semilogx(x_data_all,y_data_all, marker='o',markersize=7,
 				   linestyle='None',mec=nat_mec,mfc=season_col_nat,
 				   color=season_col_nat,fillstyle='full',
 				   label="Natural",zorder=5)
@@ -122,8 +122,8 @@ def return_time_swe(hist_data,clim_data,nat_data):
 	ax.set_title("California Nov-Apr Precipitation - "+str(nsims)+" Simulations")
 
 	ax.set_ylim(10,2000) #0,450
-	labels=['1','10','100','1000']
-	ax.set_yticklabels(labels)
+#	labels=['1','10','100','1000']
+#	ax.set_yticklabels(labels)
 
 	ax.set_xlim(1,1e3) 
 	labels=['','','1/10','1/100','1/1000']
