@@ -1,0 +1,6 @@
+# global model
+./wah_extract_gpfs_rearrange.py -u /gpfs/projects/cpdn/storage/boinc/upload/hadam3p_pnw/batch181/batch181.txt.gz -f "\
+['ga.pe','field16',[],'all',200,400,''],\
+['ga.pe','field90',[],'all',0,400,'6_nov-apr'],\
+['ga.pd','field93',[],'all',0,400,'1_apr'],\
+" -o ../../scratch/  -n 18
