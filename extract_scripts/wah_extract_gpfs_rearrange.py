@@ -517,7 +517,10 @@ def extract(taskpath, field_list, output_dir, temp_dir, n_valid,gpfs):
 		if not download:
 			print 'files already exist...'
 			return base_path,False
-
+	except Exception,e:
+		print 'Error before extract',e
+		return base_path,False
+	try:
 		for i in range(zipstart,zipend+1):
 			url=os.path.join(taskpath,boinc+'_'+str(i)+'.zip')
 #			print url
@@ -526,26 +529,37 @@ def extract(taskpath, field_list, output_dir, temp_dir, n_valid,gpfs):
 			if gpfs:
 				zf = zipfile.ZipFile(url,'r')
 				#urlret=shutil.copyfile(url,zf_fh.name)
+				zf.extractall(temp_dir)
+				
 			else:
 			# open the zip
 				zf_fh = tempfile.NamedTemporaryFile(mode='w', delete=False,dir=temp_dir)
 				urlret = urllib.urlretrieve(url, zf_fh.name)
 				zf = zipfile.ZipFile(zf_fh.name,'r')
+				zf.extractall(temp_dir)
+			
 			# list the zip contents
 			zf_list = zf.namelist()
-			for field in field_list:
-				pattern = field[0]
-				for zf_file in zf_list:
+			for zf_file in zf_list:
+				found=False
+				fname=temp_dir + "/" + zf_file
+				for field in field_list:
+					pattern = field[0]				
 					if pattern in zf_file:
-						fname=temp_dir + "/" + zf_file
 						if fname not in extracted_netcdfs[pattern]:
 							extracted_netcdfs[pattern].append(fname)
-							zf.extract(zf_file, temp_dir)
+							found=True
+							#zf.extract(zf_file, temp_dir)
+				if not found: os.remove(fname)
 			if not gpfs:
 				os.remove(zf_fh.name)
 	except Exception,e:
 		print "Could not extract url: " + url
 		print e
+		# Clean up extracted files
+		for nc_list in extracted_netcdfs.itervalues():
+			for fname in nc_list:
+				os.remove(fname)
 #		raise
 		return base_path,False
 	return base_path,extracted_netcdfs
@@ -606,6 +620,7 @@ if __name__ == "__main__":
 	# create a temporary directory - do we have permission?
 #	temp_dir = tempfile.mkdtemp(dir='/gpfs/projects/cpdn/scratch/cenv0437/')
 	temp_dir = tempfile.mkdtemp(dir='/home/cenv0437/')
+#	temp_dir = tempfile.mkdtemp(dir='/dev/shm/')
 	
 	# This should always be the same
 	gpfs_dir='/gpfs/projects/cpdn/storage/boinc/upload'
@@ -635,6 +650,8 @@ if __name__ == "__main__":
 				netcdfs=all_netcdfs[field[0]][11:17] # Select only nov-apr
 			elif field[6]=='3_jja':
 				netcdfs=all_netcdfs[field[0]][6:9] # Select only june july aug
+			elif field[6]=='3_djf':
+				netcdfs=all_netcdfs[field[0]][12:15] # Select only june july aug
 			else:
 				netcdfs=all_netcdfs[field[0]]
 #			print netcdfs

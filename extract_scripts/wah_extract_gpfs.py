@@ -416,7 +416,7 @@ def extract_netcdf_var(nc_in_file, nc_out_file, field):
 def extract_netcdf(zf, zf_file, base_path, field, temp_dir):
 	# extract the file to a tempfile
 	tmp_file_path = temp_dir + "/" + zf_file
-	zf.extract(zf_file, temp_dir)
+#	zf.extract(zf_file, temp_dir)  # now done in extract()
 	# open as netCDF to a temporary file
 	nc_file = netcdf_file(tmp_file_path,'r')
 	# create the output netCDF file
@@ -433,8 +433,9 @@ def extract_netcdf(zf, zf_file, base_path, field, temp_dir):
 	extract_netcdf_var(nc_file, out_ncf, field)
 	out_ncf.close()
 	nc_file.close()
-	# delete the temp directory and its contents
-	os.remove(tmp_file_path)
+	print 'created',out_name
+	# delete the file in the temp directory
+#	os.remove(tmp_file_path) # now done in extract()
 
 ###############################################################################
 
@@ -455,6 +456,7 @@ def extract(url, field_list, output_dir, temp_dir, n_valid,gpfs):
 		if gpfs:
 			zf = zipfile.ZipFile(url,'r')
 			#urlret=shutil.copyfile(url,zf_fh.name)
+			zf.extractall(temp_dir)
 		else:
 		# open the zip
 			urlret = urllib.urlretrieve(url, zf_fh.name)
@@ -462,11 +464,14 @@ def extract(url, field_list, output_dir, temp_dir, n_valid,gpfs):
 		# list the zip contents
 		zf_list = zf.namelist()
 		# check to see which files match the pattern
-		for field in field_list:
-			pattern = field[0]
-			for zf_file in zf_list:
+			
+		for zf_file in zf_list:
+			for field in field_list:
+				pattern = field[0]
 				if pattern in zf_file:
 					extract_netcdf(zf, zf_file, base_path, field, temp_dir)
+			# Remove original netcdf
+			os.remove(os.path.join(temp_dir,zf_file)) 
 		if not gpfs:
 			os.remove(zf_fh.name)
 	except Exception,e:
@@ -523,7 +528,8 @@ if __name__ == "__main__":
 	urls = read_urls(urls_file)
 	
 	# create a temporary directory - do we have permission?
-	temp_dir = tempfile.mkdtemp(dir='/gpfs/projects/cpdn/scratch/cenv0437/')
+#	temp_dir = tempfile.mkdtemp(dir='/gpfs/projects/cpdn/scratch/cenv0437/')
+	temp_dir = tempfile.mkdtemp(dir='/dev/shm/')
 	
 	# download each url
 	for u in urls:
