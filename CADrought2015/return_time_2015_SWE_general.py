@@ -287,7 +287,7 @@ def main():
 				continue
 
 	# Natural Forcings
-	nat_subbatches2=range(30,41)
+	nat_subbatches2=range(30,42)
 	fnames_data_nat2=[]
 	for subbatch in nat_subbatches2:
 		fnames_data_nat2=fnames_data_nat2+glob.glob('/home/cenv0437/scratch/hadam3p_pnw/batch181/sub-batch'+str(subbatch)+'/ga.pd/field93/field93_????_2015-04.nc')
