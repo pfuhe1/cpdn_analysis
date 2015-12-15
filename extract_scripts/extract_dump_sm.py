@@ -576,11 +576,11 @@ def usage():
 
 if __name__ == "__main__":
 	
-	urls_file='/gpfs/projects/cpdn/storage/boinc/upload/hadam3p_pnw/batch181/batch181.txt.gz'
+	urls_file='/gpfs/projects/cpdn/storage/boinc/upload/hadam3p_eu/batch221/batch221.txt.gz'
 	urls = read_urls(urls_file)
 	dumpzips=[]
 	for url in urls:
-		if url[-7:]=='_19.zip':
+		if url[-7:]=='_12.zip':
 			dumpzips.append(url)
 
 	print 'Number of tasks:',len(dumpzips)
