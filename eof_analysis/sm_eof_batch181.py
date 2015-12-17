@@ -17,7 +17,7 @@ from mpl_toolkits.basemap import Basemap,cm
 
 # Load ensemble of files into a single array
 def load_regional(filenames):
-	data=np.ma.zeros([len(filenames),119-12,122-12])
+	data=np.ma.zeros([len(filenames),105,98])
 	i=0
 	for f in filenames:
 		try:
@@ -84,23 +84,17 @@ def plot_region_pnw(data,lat_coord,lon_coord,lat_nw,lat_se,lon_nw,lon_se,title,v
 	
 if __name__=='__main__':
 		
-		output_dir='eof_plots_nat'
+		output_dir='eof_plots_hist'
 		if not os.path.exists(output_dir):
 			os.mkdir(output_dir)
-		filenames=glob.glob('/gpfs/projects/cpdn/scratch/cenv0437/dump_sm/hadam3p_eu/batch221/nat/region_*.nc')
+		filenames=glob.glob('/gpfs/projects/cpdn/scratch/cenv0437/dump_sm/hadam3p_pnw/batch181/sub-batch15/region_*.nc')
 #		for batchid in range(30,42):
 #			filenames.extend(glob.glob('/gpfs/projects/cpdn/scratch/cenv0437/dump_sm/hadam3p_pnw/batch181/sub-batch'+str(batchid)+'/region_*.nc'))
-		fexample=netcdf_file('/home/cenv0437/scratch/batch_100/hadam3p_eu_z2ht_2013_1_009208650_0_tasmean.nc','r')
+		fexample=netcdf_file('/home/cenv0437/scratch/tmp2/pfzkga.pel3dec.nc','r')
 		lat_coord=fexample.variables['global_latitude0'][6:-6,6:-6]
 		lon_coord=fexample.variables['global_longitude0'][6:-6,6:-6]
-
-                print "\nWhole ensemble..."	
-
-#		print "\n Subset of 200..."
-#		np.random.shuffle(filenames)
-#		filenames=filenames[:200]
-
-
+	
+		#np.random.shuffle(filenames)
 		data=load_regional(filenames)
 		data=np.ma.masked_values(data,2.e+20)
 		print "data loaded",data.shape
@@ -111,6 +105,7 @@ if __name__=='__main__':
 		nens=data.shape[0]
 		nwanted=57
 	
+		print "\nWhole ensemble..."
 		solver=Eof(data)
 		print 'set up EOF solver'
 		pcs=solver.pcs(npcs=neofs,pcscaling=1)
