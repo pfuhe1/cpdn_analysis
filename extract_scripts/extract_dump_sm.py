@@ -575,31 +575,31 @@ def usage():
 ###############################################################################
 
 if __name__ == "__main__":
-	
+	# Configureation stuff:
 	urls_file='/gpfs/projects/cpdn/storage/boinc/upload/hadam3p_eu/batch221/batch221.txt.gz'
+	restarts_zip=12
+
+	# Path set up:
+	extract_script='/home/cenv0437/cpdn_analysis/extract_scripts/extract_sm.sh'
+        gpfs_dir='/gpfs/projects/cpdn/storage/boinc/upload'
+        extract_dir='/gpfs/projects/cpdn/scratch/cenv0437/dump_sm/'
+	temp_dir = tempfile.mkdtemp(dir='/dev/shm/') # Extract temp files in memory
+#	temp_dir = tempfile.mkdtemp(dir='/home/'+os.environ['USER']) # Extract temp files to home directory
+
+	# Read in list of file urls 
 	urls = read_urls(urls_file)
 	dumpzips=[]
 	for url in urls:
-		if url[-7:]=='_12.zip':
+		if url[-7:]=='_'+str(restarts_zip)+'.zip':
 			dumpzips.append(url)
-
 	print 'Number of tasks:',len(dumpzips)
-	
-	# create a temporary directory - do we have permission?
-#	temp_dir = tempfile.mkdtemp(dir='/gpfs/projects/cpdn/scratch/cenv0437/')
-#	temp_dir = tempfile.mkdtemp(dir='/home/cenv0437/')
-	temp_dir = tempfile.mkdtemp(dir='/dev/shm/')
-	
-	# This should always be the same
-	gpfs_dir='/gpfs/projects/cpdn/storage/boinc/upload'
-	output_base='/gpfs/projects/cpdn/scratch/cenv0437/dump_sm/'
 	
 	# download each url
 	for u in list(dumpzips):
 
 		try:
 			u=u.split('results')[1]
-			output_dir=output_base+os.path.dirname(os.path.dirname(u)) #Add subdirectories for batch and workunit
+			output_dir=extract_dir+os.path.dirname(os.path.dirname(u)) #Add subdirectories for batch and workunit
 			u=gpfs_dir+u # Actual location of the file
 		except Exception,e:
 			print e
@@ -615,11 +615,10 @@ if __name__ == "__main__":
 		except Exception,e:
 			print e
 			continue
-			
-		extract='/home/cenv0437/cpdn_analysis/extract_scripts/extract_sm.sh'
-		os.system(extract+' '+temp_dir+'/atmos_restart.day '+output_dir+'/atmos_'+umid+'_sm.nc')
-		os.system(extract+' '+temp_dir+'/region_restart.day '+output_dir+'/region_'+umid+'_sm.nc')
 
-	
+		# Extract soil moisture out of restart dumps		
+		os.system(extract_script+' '+temp_dir+'/atmos_restart.day '+output_dir+'/atmos_'+umid+'_sm.nc')
+		os.system(extract_script+' '+temp_dir+'/region_restart.day '+output_dir+'/region_'+umid+'_sm.nc')
+
 	# remove the temporary directory
 	shutil.rmtree(temp_dir)
