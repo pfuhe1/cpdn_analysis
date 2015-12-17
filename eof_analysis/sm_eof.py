@@ -16,8 +16,8 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.basemap import Basemap,cm
 
 # Load ensemble of files into a single array
-def load_regional(filenames):
-	data=np.ma.zeros([len(filenames),119-12,122-12])
+def load_regional(filenames,ny,nx):
+	data=np.ma.zeros([len(filenames),ny,nx])
 	i=0
 	for f in filenames:
 		try:
@@ -93,6 +93,7 @@ if __name__=='__main__':
 		fexample=netcdf_file('/home/cenv0437/scratch/batch_100/hadam3p_eu_z2ht_2013_1_009208650_0_tasmean.nc','r')
 		lat_coord=fexample.variables['global_latitude0'][6:-6,6:-6]
 		lon_coord=fexample.variables['global_longitude0'][6:-6,6:-6]
+		ny,nx=lat_coord.shape
 
                 print "\nWhole ensemble..."	
 
@@ -101,7 +102,7 @@ if __name__=='__main__':
 #		filenames=filenames[:200]
 
 
-		data=load_regional(filenames)
+		data=load_regional(filenames,ny,nx)
 		data=np.ma.masked_values(data,2.e+20)
 		print "data loaded",data.shape
 	

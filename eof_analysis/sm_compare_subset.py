@@ -83,9 +83,12 @@ def plot_region_pnw(data,lat_coord,lon_coord,lat_nw,lat_se,lon_nw,lon_se,title,v
 	plt.savefig(output_dir+'/'+title+'.png')
 	
 if __name__=='__main__':
-		
+	
+		# Paths
+		umids_chosen='/home/cenv0437/cpdn_analysis/eof_analysis/eof_plots_nat/umids_chosen.txt'	
 		output_dir='eof_plots_nat'
 		in_dir='/gpfs/projects/cpdn/scratch/cenv0437/dump_sm/hadam3p_eu/batch221/nat/'
+
 		if not os.path.exists(output_dir):
 			os.mkdir(output_dir)
 		filenames=glob.glob(in_dir+'region_*.nc')
@@ -120,7 +123,7 @@ if __name__=='__main__':
 
 		print "\nSubsampled ensemble..."
 		fnames_subset=[]
-		for umid in open('/home/cenv0437/cpdn_analysis/eof_analysis/eof_plots_nat/umids_chosen.txt'):
+		for umid in open(umids_chosen):
 			fnames_subset.append(in_dir+'region_'+umid.strip()+'_sm.nc')
 		data_subset=load_regional(fnames_subset)
 		data_subset=np.ma.masked_values(data_subset,2.e20)
