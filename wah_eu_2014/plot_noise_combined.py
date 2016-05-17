@@ -8,17 +8,28 @@ from mpl_toolkits.basemap import Basemap,cm
 from region_returntimes import get_region_returntimes, remap_p5deg_to_rotated
 
 if __name__=='__main__':
+
+	obsname='BEST'
+#	obsname='EOBS'
 	
 #######################################
 # Geert Jan data
 	# Open file:
-	fname='../../scratch/data_from_ouce/m23134.nc'
+
+#	fname='../../scratch/data_from_ouce/m23134.nc'
+#	fname='../../scratch/data_from_ouce/m25722.nc'
+	if obsname=='BEST':
+		fname='../../scratch/data_from_ouce/geertjan_stdev_berkeley.nc'
+		fname='../../scratch/data_from_ouce/m10354_nc3.nc'
+	else:
+		fname='../../scratch/data_from_ouce/geertjan_stdev_crutem.nc'
+		
 	f_gy=netcdf_file(fname,'r')
 	
 # Standard deviation
 	stdev=f_gy.variables['sd'][0,0,:]
 	stdev=np.ma.masked_values(stdev,3.e33)
-	print stdev.min(),stdev.max()
+	print 'geertjan',stdev.min(),stdev.mean(),stdev.max()
 
 	lat=f_gy.variables['lat'][:]
 	lon=f_gy.variables['lon'][:]
@@ -30,8 +41,8 @@ if __name__=='__main__':
 #######################################
 # Andrew King data
 
-#	fname='../../scratch/data_from_ouce/FAR_bestestimate_2014thresh.nc'
 	fname='../../scratch/data_from_ouce/CMIP5_noise_detrend.nc'
+	fname='../../scratch/data_from_ouce/CMIP5_noise_v2.nc'
 #	fname='../../scratch/data_from_ouce/FAR_bestestimate.nc'
 	f_ak=netcdf_file(fname,'r')
 	
@@ -43,8 +54,7 @@ if __name__=='__main__':
 #	noise_ak=np.ma.masked_where(~np.isfinite(noise_ak),noise_ak)
 #	far_ak[~np.isfinite(far_ak)]=1.0
 	
-	print np.nanmin(noise_ak),np.nanmax(noise_ak)
-	print 'FAR_CMIP5 mean:',noise_ak.mean()
+	print 'CMIP5',np.nanmin(noise_ak),noise_ak.mean(),np.nanmax(noise_ak)
 	
 	lat=np.append(f_ak.variables['latitude'][:],[90])
 	lon=np.append(f_ak.variables['longitude'][:],[360])
@@ -75,22 +85,19 @@ if __name__=='__main__':
 	print 'histClim',clim_hist_data.shape[0]
 	print 'natClim',clim_nat_data.shape[0]
 	
-	obs_p5deg= '/home/cenv0437/scratch/data_from_ouce/CRU_TS_Absolute_plus_BEST_anomaly_201312_201412.nc'
-	obsname='BEST'
-	rot_template= '/home/cenv0437/scratch/data_from_ouce/hadam3p_eu_z4ao_2013_1_009238311_0_tasmean.nc'
+	rot_template= '/home/cenv0437/scratch/data_from_ouce/hadam3p_eu_template.nc'
 	f_rot=netcdf_file(rot_template,'r')
 	lat_coord=f_rot.variables['global_latitude0'][4:-7,4:-4]
 	lon_coord=f_rot.variables['global_longitude0'][4:-7,4:-4]
 	f_rot.close()	
-	obs=remap_p5deg_to_rotated(obs_p5deg,rot_template)[:,:]
 	
 
 
 	# FAR
 	noise2014=natural_data.std(0) #/(hist_mean.mean()-nat_mean.mean()) # Areas where count_hist =0 -> NaN
-	print ' Noise 2014 mean:',noise2014.mean()
+	print ' Noise 2014 mean:',noise2014.min(),noise2014.mean(),noise2014.max()
 	noiseclim=clim_nat_data.std(0) #/(histclim_mean.mean()-natclim_mean.mean()) # Areas where count_hist =0 -> NaN
-	print 'Noise Clim mean:',noiseclim.mean()
+	print 'Noise Clim mean:',noiseclim.min(),noiseclim.mean(),noiseclim.max()
 
 #######################################
 # Plotting stuff
@@ -115,12 +122,18 @@ if __name__=='__main__':
 	x3,y3=m(lon_coord[:],lat_coord[:])  # WAH grid
 
 
+
+	print "Stdev:",stdev.mean(),noise_ak.mean(),noise2014.mean(),noiseclim.mean()
+	print "Wah EU stdev",natural_data.mean(1).mean(1).std(),clim_nat_data.mean(1).mean(1).std()
 ###############################
 	
-	plt.set_cmap('coolwarm')		
+	plt.set_cmap('coolwarm')
+	plt.set_cmap('OrRd')		
 	circles=[30,40,50,60,70]
 	meridians=[-40,-30,-20,-10,0,10,20,30,40,50,60]
 	axes_list=[]
+	vmin=0
+	vmax=1.4
 
 	plt.figure(6)
 	folder='combined_figs/'
@@ -128,7 +141,7 @@ if __name__=='__main__':
 	plt.subplot(221)
 	axes_list.append(plt.gca())
 	plt.title('a)')
-	c=m.pcolor(x,y,stdev,vmin=0.6,vmax=1.)
+	c=m.pcolor(x,y,stdev,vmin=vmin,vmax=vmax)
 	m.drawcoastlines()
 	m.drawcountries()
 	m.drawparallels(circles)
@@ -138,7 +151,7 @@ if __name__=='__main__':
 	plt.subplot(222)
 	axes_list.append(plt.gca())
 	plt.title('b)')
-	c=m.pcolor(x2,y2,noise_ak,vmin=0.,vmax=2)#,np.arange(0.6,1.05,.05),extend='both')
+	c=m.pcolor(x2,y2,noise_ak,vmin=vmin,vmax=vmax)#,np.arange(0.6,1.05,.05),extend='both')
 	m.drawcoastlines()
 	m.drawcountries()
 	m.drawparallels(circles)
@@ -148,7 +161,7 @@ if __name__=='__main__':
 	plt.subplot(223)
 	axes_list.append(plt.gca())
 	plt.title('c)')
-	c=m.pcolor(x3,y3,noise2014,vmin=0.,vmax=2)
+	c=m.pcolor(x3,y3,noise2014,vmin=vmin,vmax=vmax)
 	m.drawcoastlines()
 	m.drawcountries()
 	m.drawparallels(circles)
@@ -157,7 +170,7 @@ if __name__=='__main__':
 	plt.subplot(224)
 	axes_list.append(plt.gca())
 	plt.title('d)')
-	c=m.pcolor(x3,y3,noiseclim,vmin=0.,vmax=2)
+	c=m.pcolor(x3,y3,noiseclim,vmin=vmin,vmax=vmax)
 	m.drawcoastlines()
 	m.drawcountries()
 	m.drawparallels(circles)
@@ -166,7 +179,7 @@ if __name__=='__main__':
 	
 	# Finish up plot
 	plt.tight_layout()
-	plt.colorbar(c,orientation='vertical',ax=axes_list,aspect=40,pad=0.05,extend='min')
+	plt.colorbar(c,orientation='vertical',ax=axes_list,aspect=40,pad=0.05,extend='max')
 
-	plt.savefig(folder+'noise_combined.png')
+	plt.savefig(folder+'noise_combined_'+obsname+'v4.png')
 		
