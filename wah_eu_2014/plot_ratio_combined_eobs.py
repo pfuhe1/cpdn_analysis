@@ -15,7 +15,8 @@ if __name__=='__main__':
 # Geert Jan data
 	# Open file:
 #	fname='../../scratch/data_from_ouce/trends_berkeley_tavg_2986.nc'
-	fname='../../scratch/data_from_ouce/trends_berkeley_tavg_14560.nc'
+#	fname='../../scratch/data_from_ouce/trends_berkeley_tavg_14560.nc'
+	fname='../../scratch/data_from_ouce/trends_ensembles_05_tg_mo_15198_nc3.nc'
 	f_gy=netcdf_file(fname,'r')
 	
 # Ratio

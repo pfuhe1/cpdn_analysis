@@ -66,8 +66,32 @@ def extract_zips(taskdir,outpath,nzips=12,file_code='ga.pe'):
 			else: raise Exception('Not all zips are present')
 		extracted.append(os.path.join(outpath,ncfile))
 	return extracted
+
+def create_netcdf_global(template,data,outname):
+	# create outfile object
+	outfile=netcdf_file(outname,'w')
 	
-def create_netcdf(template,data,outname):
+	# Create dimensions copied from template file
+	temp=template.variables['field16']
+	for dim in temp.dimensions:
+		if dim=='time1': leng=0
+		else: leng=int(template.dimensions[dim])
+		outfile.createDimension(dim,leng)
+		outfile.createVariable(dim,'f',(dim,))
+		outfile.variables[dim][:]=template.variables[dim][:]
+		for att in template.variables[dim]._attributes:
+			outfile.variables[dim].__setattr__(att,template.variables[dim].__getattribute__(att))
+	
+	# Create data variable (named tas)
+	outfile.createVariable('tas','f',temp.dimensions)
+	outfile.variables['tas'][:]=data
+	for att in temp._attributes:
+		outfile.variables['tas'].__setattr__(att,temp.__getattribute__(att))
+	
+	outfile.flush()
+	outfile.close()
+	
+def create_netcdf_regional(template,data,outname):
 	# create outfile object
 	outfile=netcdf_file(outname,'w')
 	
@@ -121,19 +145,31 @@ if __name__=='__main__':
 	# Make sure output exists
 	if not os.path.exists(outpath):
 		os.makedirs(outpath)
-		
+	
+	# Choose between global and regional files
+	regional=True
+	if regional:
+		region_suffix='mean.nc'
+		file_code='ga.pe'
+	else:
+		region_suffix='global.nc'
+		file_code='ma.pc'
+
 	tasks=glob.glob(incoming)
 	for taskdir in tasks:
 		taskname = taskdir.split('/')[-1]
-		outfile=os.path.join(outpath,taskname+'_tasmean.nc')
+		outfile=os.path.join(outpath,taskname+'_tas'+region_suffix)
 		print outfile
 		
 		if not os.path.exists(outfile):
 			try:
-				ncfiles=extract_zips(taskdir,outpath+'/tmp')
+				ncfiles=extract_zips(taskdir,outpath+'/tmp',file_code=file_code)
 				meantemp=yearly_mean(ncfiles)
 				tmp=netcdf_file(ncfiles[0],'r') # use as a template for output file
-				create_netcdf(tmp,meantemp,outfile)
+				if regional:
+					create_netcdf_regional(tmp,meantemp,outfile)
+				else:
+					create_netcdf_global(tmp,meantemp,outfile)
 				# Remove temporary ncfiles
 				for f in ncfiles:
 					os.remove(f)

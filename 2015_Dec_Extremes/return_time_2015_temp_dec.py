@@ -195,18 +195,14 @@ def main():
 	cols={}
 	
 	# Define color scheme:
-	cols['2015 Actual']='orange'
-	mecs['2015 Actual']='darkorange'
-	
-	cols['2015 Natural']="MediumSeaGreen"
-	mecs['2015 Natural']="DarkGreen"
-	
-	cols['1985-2013 Climatology']='RoyalBlue'
-	mecs['1985-2013 Climatology']='MediumBlue'
-	
-	cols['NaturalFix']='Purple'
-	mecs['NaturalFix']='DarkMagenta'
+        cols['2015 Actual']='red'
+        mecs['2015 Actual']='darkred'
 
+        cols['2015 Natural']="RoyalBlue"
+        mecs['2015 Natural']="MediumBlue"
+
+        cols['1985-2013 Climatology']='orange'
+        mecs['1985-2013 Climatology']='darkorange'
 
 	alpha=0.07
 			
@@ -251,12 +247,12 @@ def main():
 	nyears=100 
 	
 	# Threshold relative to actual ensemble
-#	tmp=datad['2015 Actual']
-#	tmp.sort()
-#	thresh=tmp[-(n_hist/nyears)]
+	tmp=datad['2015 Actual']
+	tmp.sort()
+	thresh=tmp[-(n_hist/nyears)]
 	
 	# Observed 2015 threshold
-	thresh=9.7
+#	thresh=9.7
 
 	condition=datad['2015 Actual']>thresh
 	count_hist=condition.sum(0)/(n_hist*1.0)
@@ -273,8 +269,8 @@ def main():
 	ratio_anth=(count_hist)/(count_nat)
 	ratio_anom=(count_hist)/count_clim
 	
-#	print "1 in "+str(nyears)+" event"
-	print '2015 event'
+	print "1 in "+str(nyears)+" event"
+#print '2015 event'
 	print "Threshold",thresh
 	print "Return times, actual, natural, climatology"
 	print 1./count_hist,1./count_nat,1./count_clim
@@ -288,7 +284,7 @@ def main():
 	fout='/home/cenv0437/cpdn_analysis/2015_Dec_Extremes/figs/temp_return_dec_'+region+'_corrected'
 	# Make still image
 	f_ext='.png'
-#	return_time_temp(plt.figure(),datad,mecs,cols,region,fname_out=fout+f_ext)
+	return_time_temp(plt.figure(),datad,mecs,cols,region,fname_out=fout+f_ext)
 #	print "saved as",fout+f_ext
 
 	print 'Finished!'

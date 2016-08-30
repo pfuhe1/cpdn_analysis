@@ -1,11 +1,10 @@
+#!/usr/local/bin/python2.7
 #############################################################################
 # Program : return_time_2014_bootstrap.py
-# Author  : Sarah Sparrow (assisted by nathalie Schaller)
-# Date	: 05/03/2014
-# Purpose : Plot return time periods for 2014 all forcing and natural data
-# Updates : 02/04/2014 Updated from return_time_2014.py to include bootstrap 
-#		   error bars
-#		   25/04/2014 Updated to include CMIP5 model bootstraps
+# Author  : Peter Uhe, based on script by Sarah Sparrow (assisted by nathalie Schaller)
+# Date	: 03/07/2015
+# Purpose : Plot return time periods for 2015 all forcing, climatology and natural data
+
 #############################################################################
 
 import sys
@@ -21,10 +20,7 @@ import glob
 from scipy.io.netcdf import netcdf_file
 import matplotlib.animation as animat
 import random
-
-EU = os.path.expanduser
-sys.path.append(EU("~massey/Coding/cpdn_analysis/"))
-
+import time
 
 from return_time_plot import *
 
@@ -32,109 +28,113 @@ from mpl_toolkits.axes_grid1.inset_locator import zoomed_inset_axes
 from mpl_toolkits.axes_grid1.inset_locator import mark_inset
 
 
-def return_time_temp(i,fig,hist_data,nat_data,out_dir=False):
+def return_time_temp(i,fig,data_hist,data_clim,data_nat,region,out_dir=False):
 
 	print i
 	# Number of ensemble members
-	nens_hist=hist_data.shape[0]
-	nens_nat=nat_data.shape[0]
+	nens_hist=data_hist.shape[0]
+	nens_nat=data_nat.shape[0]
+	nens_clim=data_clim.shape[0]
 
 	# Reduce number of ensemble members
 	nens_hist=min(nens_hist,i)
 	nens_nat=min(nens_nat,i)
+	nens_clim=min(nens_clim,i)
 	
-	hist_data=hist_data[:nens_hist]
-	nat_data=nat_data[:nens_nat]
+	data_hist=data_hist[:nens_hist]
+	data_nat=data_nat[:nens_nat]
+	data_clim=data_clim[:nens_clim]
 	
 	# Number of simulations used here
-	nsims=nens_hist +nens_nat
+	nsims=nens_hist +nens_nat + nens_clim
 
 	#----------------------------------------------------------------------
 	# Set the plot fint size
 	#---------------------------------------------------------------------
-	font = {'family' : 'sans-serif',
-			'size'   : 20}
-
+	font = {'family' : 'sans-serif','size'   : 20}
 	matplotlib.rc('font', **font)
 
-	#--------------------------------------------------------------------------
-	# Define model names for files and type
-	#--------------------------------------------------------------------------
-	types=["all_forcings","natural"]
-	models=["CanESM2", "CCSM4", "CNRM-CM5", "CSIRO-Mk3-6-0", 
-			"GFDL-CM3", "GISS-E2-H", "GISS-E2-R", "HadGEM2-ES", "IPSL-CM5A-LR", "IPSL-CM5A-MR", "MIROC-ESM"]
-	
-#	season_col_allf="RoyalBlue" 
-#	allf_mec="MediumBlue"
+	# Define color scheme:
 	season_col_allf='orange'
 	allf_mec='darkorange'
-	
 	season_col_nat="MediumSeaGreen"
 	nat_mec="DarkGreen"
-	
 	season_col_clim='RoyalBlue'
 	clim_mec='MediumBlue'
 
+	### Set up plot
 	plt.clf()
 	fig.set_size_inches(8,8)
 	ax = fig.add_subplot(1,1,1)
-	fig.subplots_adjust(bottom=0.15)
-	ax.set_ylabel("Temperature threshold (degrees Celcius)",fontsize=16)
-	ax.set_xlabel("Chance of average temperature greater than threshold",fontsize=16)
-	plt.setp(ax.get_xticklabels(),fontsize=12)
-	plt.setp(ax.get_yticklabels(),fontsize=12)
 
-
-	# Hist data
-	y_data_all, x_data_all = calc_return_times(hist_data,
-											   direction="descending", 
-											   period=1)
-
-	conf_all = calc_return_time_confidences(hist_data,
-											direction="descending",bsn=1e3)  
+	### Hist data
+	# Return Times
+	y_data_all, x_data_all = calc_return_times(data_hist,  direction="descending",  period=1)
 	l1=ax.semilogx(x_data_all,y_data_all, marker='o',markersize=7,
 				   linestyle='None',mec=allf_mec,mfc=season_col_allf,
 				   color=season_col_allf,fillstyle='full',
 				   label="Actual",zorder=5)
+	# Confidence Interval	   
+	conf_all = calc_return_time_confidences(data_hist,direction="descending",bsn=1e3)  
 	conf_all_5=conf_all[0,:].squeeze()
 	conf_all_95=conf_all[1,:].squeeze()
 	cl1=ax.fill_between(x_data_all,conf_all_5,conf_all_95,facecolor=allf_mec,edgecolor=allf_mec,alpha=0.3,linewidth=1.5,zorder=4)
 
 
-	# Nat data
-	y_data_all, x_data_all = calc_return_times(nat_data,
-											   direction="descending", 
-											   period=1)
-	conf_all = calc_return_time_confidences(nat_data,
-											direction="descending",bsn=1e3)  
+	### Climatology data
+	# Return Times
+	y_data_all, x_data_all = calc_return_times(data_clim,  direction="descending",  period=1)
+	l1=ax.semilogx(x_data_all,y_data_all, marker='o',markersize=7,
+				   linestyle='None',mec=clim_mec,mfc=season_col_clim,
+				   color=season_col_clim,fillstyle='full',
+				   label="Climatology",zorder=5)
+	# Confidence Interval	   
+	conf_all = calc_return_time_confidences(data_clim,direction="descending",bsn=1e3)  
+	conf_all_5=conf_all[0,:].squeeze()
+	conf_all_95=conf_all[1,:].squeeze()
+	cl1=ax.fill_between(x_data_all,conf_all_5,conf_all_95,facecolor=clim_mec,edgecolor=allf_mec,alpha=0.3,linewidth=1.5,zorder=4)
+
+
+	### Nat data
+	# Return Times
+	y_data_all, x_data_all = calc_return_times(data_nat,direction="descending", period=1)
 	l1=ax.semilogx(x_data_all,y_data_all, marker='o',markersize=7,
 				   linestyle='None',mec=nat_mec,mfc=season_col_nat,
 				   color=season_col_nat,fillstyle='full',
-				   label="Natural",zorder=5)
+				   label="Natural",zorder=5)			   
+	# Confidence interval
+	conf_all = calc_return_time_confidences(data_nat,direction="descending",bsn=1e3)  
 	conf_all_5=conf_all[0,:].squeeze()
 	conf_all_95=conf_all[1,:].squeeze()
 	cl1=ax.fill_between(x_data_all,conf_all_5,conf_all_95,facecolor=nat_mec,edgecolor=nat_mec,alpha=0.3,linewidth=1.5,zorder=4)
 	
 	
+	# Plotting Stuff
+	fig.subplots_adjust(bottom=0.15)
+	ax.set_ylabel("Temperature threshold (degrees Celcius)",fontsize=16)
+	ax.set_xlabel("Chance of average temperature greater than threshold",fontsize=16)
+	plt.setp(ax.get_xticklabels(),fontsize=12)
+	plt.setp(ax.get_yticklabels(),fontsize=12)
+	ax.set_title(region+" Dec2014-Feb2015 Temperature\n"+str(nsims).zfill(5)+" Simulations")
 	
-	ax.set_title("California Dec2014-Feb2015 Temperature\n"+str(nsims).zfill(5)+" Simulations")
-
-	ax.set_ylim(2,9) 
-	ax.set_xlim(1,1e3) 
+	ylims={'California':(2,9),'Oregon':(0,6),'Washington':(0,6)}
+	#ax.set_ylim(ylims[region][0],ylims[region][1]) 
+	ax.set_xlim(1,1e3)
 	labels=['','','1/10','1/100','1/1000']
 	ax.set_xticklabels(labels)
-
 	plt.legend(loc='lower right')
+	
+	# Save figure if out_dir is defined
 	if out_dir:
 		if not os.path.exists(out_dir):
-        		os.mkdir(out_dir)
-		fname_out=os.path.join(out_dir,"return_time_temp_"+str(nsims).zfill(5)+".png")
+			os.mkdir(out_dir)
+		fname_out=os.path.join(out_dir,"return_time_temp_"+str(nsims).zfill(5)++"_"+region+".png")
 		fig.savefig(fname_out,dpi=28.75*2)
 
-
-
-def calif_mean(pnw_data):
-	calif_indices=[6318,6319,6320,6321,6322,6323,6324,6325,6326,6327,6328,6329,6330,6331
+def region_mean(pnw_data,region):
+	indices={}
+	indices['California']=[
+6318,6319,6320,6321,6322,6323,6324,6325,6326,6327,6328,6329,6330,6331
 ,6428,6429,6430,6431,6432,6433,6434,6435,6436,6437,6438,6439,6440,6441
 ,6538,6539,6540,6541,6542,6543,6544,6545,6546,6547,6548,6549,6550,6551
 ,6648,6649,6650,6651,6652,6653,6654,6655,6656,6657,6658,6659,6660,6661
@@ -183,67 +183,152 @@ def calif_mean(pnw_data):
 ,10526,10527,10528,10529,10530,10531,10532,10633,10634,10635,10636,10637,10638,10639
 ,10640,10641,10642,10643,10743,10744,10745,10746,10747,10748,10749,10750,10751,10752
 ,10753,10853,10854,10855,10856,10857,10858,10859]
-	calif_mask=np.ones(pnw_data.shape).flatten() # Start with mask everywhere
-	for pt in calif_indices:
-		calif_mask[pt]=0 #unmask points in california
-	calif_mask=np.reshape(calif_mask,pnw_data.shape)
-	calif_data=np.ma.masked_where(calif_mask,pnw_data)
-	return calif_data.mean()
+	indices['Washington']=[
+2803,2804,2805,2806,2807,2808,2809,2810,2811,2812,2813,2814,2815,2816,2817
+,2818,2819,2914,2915,2916,2917,2918,2919,2920,2921,2922,2923,2924,2925,2926
+,2927,2928,2929,3023,3024,3025,3026,3027,3028,3029,3030,3031,3032,3033,3034
+,3035,3036,3037,3038,3039,3127,3128,3134,3135,3136,3137,3138,3139,3140,3141
+,3142,3143,3144,3145,3146,3147,3148,3149,3237,3238,3239,3240,3241,3242,3245
+,3246,3247,3248,3249,3250,3251,3252,3253,3254,3255,3256,3257,3258,3259,3348
+,3349,3350,3351,3352,3353,3354,3355,3356,3357,3358,3359,3360,3361,3362,3363
+,3364,3365,3366,3367,3368,3369,3370,3458,3459,3460,3461,3462,3463,3464,3465
+,3466,3467,3468,3469,3470,3471,3472,3473,3474,3475,3476,3477,3478,3479,3480
+,3568,3569,3570,3571,3572,3573,3574,3575,3576,3577,3578,3579,3580,3581,3582
+,3583,3584,3585,3586,3587,3588,3589,3590,3678,3679,3680,3681,3682,3683,3684
+,3685,3686,3687,3688,3689,3690,3691,3692,3693,3694,3695,3696,3697,3698,3699
+,3700,3789,3790,3791,3792,3793,3794,3795,3796,3797,3798,3799,3800,3801,3802
+,3803,3804,3805,3806,3807,3808,3809,3810,3899,3900,3901,3902,3903,3904,3905
+,3906,3907,3908,3909,3910,3911,3912,3913,3914,3915,3916,3917,3918,3919,3920
+,4009,4010,4011,4012,4013,4014,4015,4016,4017,4018,4019,4020,4021,4022,4023
+,4024,4025,4026,4027,4028,4029,4030,4121,4122,4123,4124,4125,4126,4127,4128
+,4129,4130,4131,4132,4133,4134,4135,4136,4137,4138,4139,4140,4232,4233,4234
+,4235,4236,4237,4238,4239,4240,4241,4242,4243,4244,4343,4344,4345,4346,4347
+,4348,4349,4350,4454]
+	indices['Oregon']=[
+4120,4229,4230,4231,4245,4246,4247,4248,4249,4250,4339,4340,4341,4342,4351
+,4352,4353,4354,4355,4356,4357,4358,4359,4360,4361,4362,4449,4450,4451,4452
+,4453,4455,4456,4457,4458,4459,4460,4461,4462,4463,4464,4465,4466,4467,4468
+,4469,4470,4471,4472,4559,4560,4561,4562,4563,4564,4565,4566,4567,4568,4569
+,4570,4571,4572,4573,4574,4575,4576,4577,4578,4579,4580,4581,4669,4670,4671
+,4672,4673,4674,4675,4676,4677,4678,4679,4680,4681,4682,4683,4684,4685,4686
+,4687,4688,4689,4690,4691,4779,4780,4781,4782,4783,4784,4785,4786,4787,4788
+,4789,4790,4791,4792,4793,4794,4795,4796,4797,4798,4799,4800,4801,4889,4890
+,4891,4892,4893,4894,4895,4896,4897,4898,4899,4900,4901,4902,4903,4904,4905
+,4906,4907,4908,4909,4910,4998,4999,5000,5001,5002,5003,5004,5005,5006,5007
+,5008,5009,5010,5011,5012,5013,5014,5015,5016,5017,5018,5019,5020,5108,5109
+,5110,5111,5112,5113,5114,5115,5116,5117,5118,5119,5120,5121,5122,5123,5124
+,5125,5126,5127,5128,5129,5130,5131,5218,5219,5220,5221,5222,5223,5224,5225
+,5226,5227,5228,5229,5230,5231,5232,5233,5234,5235,5236,5237,5238,5239,5240
+,5241,5328,5329,5330,5331,5332,5333,5334,5335,5336,5337,5338,5339,5340,5341
+,5342,5343,5344,5345,5346,5347,5348,5349,5350,5351,5438,5439,5440,5441,5442
+,5443,5444,5445,5446,5447,5448,5449,5450,5451,5452,5453,5454,5455,5456,5457
+,5458,5459,5460,5461,5547,5548,5549,5550,5551,5552,5553,5554,5555,5556,5557
+,5558,5559,5560,5561,5562,5563,5564,5565,5566,5567,5568,5569,5570,5571,5657
+,5658,5659,5660,5661,5662,5663,5664,5665,5666,5667,5668,5669,5670,5671,5672
+,5673,5674,5675,5676,5677,5678,5679,5680,5681,5767,5768,5769,5770,5771,5772
+,5773,5774,5775,5776,5777,5778,5779,5780,5781,5782,5783,5784,5785,5786,5787
+,5788,5789,5790,5791,5877,5878,5879,5880,5881,5882,5883,5884,5885,5886,5887
+,5888,5889,5890,5891,5892,5893,5894,5895,5896,5897,5898,5899,5900,5901,5987
+,5988,5989,5990,5991,5992,5993,5994,5995,5996,5997,5998,5999,6000,6001,6002
+,6003,6004,6005,6006,6007,6008,6009,6010,6011,6097,6098,6099,6100,6101,6102
+,6103,6104,6105,6106,6107,6108,6109,6110,6111,6112,6113,6114,6115,6116,6117
+,6118,6119,6120,6121,6208,6209,6210,6211,6212,6213,6214,6215,6216,6217,6218
+,6219,6220,6221,6222,6223,6224,6225,6226,6227,6228,6229]
+
+	region_mask=np.ones(pnw_data.shape).flatten() # Start with mask everywhere	
+	for pt in indices[region]:
+		region_mask[pt]=0 #unmask points in california
+	region_mask=np.reshape(region_mask,pnw_data.shape)
+	region_data=np.ma.masked_where(region_mask,pnw_data)
+	region_data=np.ma.masked_values(region_data,-1.073742e+09) # mask missing values
+	return region_data.mean()
 
 
 #Main controling function
 def main():
 
 	months=['2014-12','2015-01','2015-02']
+	regions=['California','Oregon','Washington']	
 
 	# Actual
-	fnames_temp_hist=glob.glob('/home/cenv0437/scratch/hadam3p_pnw/batch181/sub-batch1/ga.pe/field16/field16_????_2014-11.nc')
-	random.shuffle(fnames_temp_hist)
-	temp_hist=np.zeros([len(fnames_temp_hist)])
-	for i,fname in enumerate(fnames_temp_hist):
-		tmpsum=0
+	fnames_data_hist=glob.glob('/home/cenv0437/scratch/hadam3p_pnw/batch181/sub-batch15/ga.pe/field16/field16_????_2014-11.nc')
+	fnames_data_hist=fnames_data_hist+glob.glob('/home/cenv0437/scratch/hadam3p_pnw/batch181/sub-batch1/ga.pe/field16/field16_????_2014-11.nc')
+	random.shuffle(fnames_data_hist)
+	data_hist=np.zeros([len(regions),len(fnames_data_hist)])
+	for i,fname in enumerate(fnames_data_hist):
+		tmpsum=np.zeros([len(regions)])
 		try:	
 			for monthstr in months:
 				fname2=fname[:-10]+monthstr+'.nc'
 				print os.path.basename(fname2)
 				tmp=netcdf_file(fname2,'r').variables['field16'][0,0,:]
-				tmpsum=tmpsum+calif_mean(tmp)
-			temp_hist[i]=(tmpsum/3)-273.15
+				for j,region in enumerate(regions):
+					tmpsum[j]=tmpsum[j]+region_mean(tmp,region)
+			data_hist[:,i]=(tmpsum/3)-273.15
 		except:
 #			raise Exception('wrong number of files: '+str(len(monthfiles)))
-			temp_hist[i]=np.nan
+			data_hist[:,i]=[np.nan,np.nan,np.nan]
+			raise
+			
+	# Climatology
+	fnames_data_clim=glob.glob('/home/cenv0437/scratch/hadam3p_pnw/batch181/sub-batch29/ga.pe/field16/field16_????_2014-11.nc')
+	random.shuffle(fnames_data_clim)
+	data_clim=np.zeros([len(regions),len(fnames_data_clim)])
+	for i,fname in enumerate(fnames_data_clim):
+		tmpsum=np.zeros([len(regions)])
+		try:	
+			for monthstr in months:
+				fname2=fname[:-10]+monthstr+'.nc'
+				print os.path.basename(fname2)
+				tmp=netcdf_file(fname2,'r').variables['field16'][0,0,:]
+				for j,region in enumerate(regions):
+					tmpsum[j]=tmpsum[j]+region_mean(tmp,region)
+			data_clim[:,i]=(tmpsum/3)-273.15
+		except:
+#			raise Exception('wrong number of files: '+str(len(monthfiles)))
+			data_clim[:,i]=[np.nan,np.nan,np.nan]
 			raise
 
 	# Natural Forcings
-	nat_subbatches=range(3,15)
-	fnames_temp_nat=[]
+	nat_subbatches=range(3,15)+range(17,29)
+	fnames_data_nat=[]
 	for subbatch in nat_subbatches:
-		fnames_temp_nat=fnames_temp_nat+glob.glob('/home/cenv0437/scratch/hadam3p_pnw/batch181/sub-batch'+str(subbatch)+'/ga.pe/field16/field16_????_2014-11.nc')
-	random.shuffle(fnames_temp_nat)
-	temp_nat=np.zeros([len(fnames_temp_nat)])
-	for i,fname in enumerate(fnames_temp_nat):
-		tmpsum=0
+		fnames_data_nat=fnames_data_nat+glob.glob('/home/cenv0437/scratch/hadam3p_pnw/batch181/sub-batch'+str(subbatch)+'/ga.pe/field16/field16_????_2014-11.nc')
+	random.shuffle(fnames_data_nat)
+	data_nat=np.zeros([len(regions),len(fnames_data_nat)])
+	for i,fname in enumerate(fnames_data_nat):
+		tmpsum=np.zeros([len(regions)])
 		try:	
 			for monthstr in months:
 				fname2=fname[:-10]+monthstr+'.nc'
 				print os.path.basename(fname2)
 				tmp=netcdf_file(fname2,'r').variables['field16'][0,0,:]
-				tmpsum=tmpsum+calif_mean(tmp)
-			temp_nat[i]=(tmpsum/3)-273.15
+				for j,region in enumerate(regions):
+					tmpsum[j]=tmpsum[j]+region_mean(tmp,region)
+			data_nat[:,i]=(tmpsum/3)-273.15
 		except:
 #			raise Exception('wrong number of files: '+str(len(monthfiles)))
-			temp_nat[i]=np.nan
+			data_nat[:,i]=[np.nan,np.nan,np.nan]
 			raise
 
 	
 	make_video=True
 	
 	if make_video:
-		# Create list of frames:
-		imax=100 #Maximum number of ensembles members to include	
-#		imax=max(temp_hist.shape[0],temp_nat.shape[0])
-#		imax=min(temp_hist.shape[0],temp_nat.shape[0])
+	
+		# Set Maximum number of ensembles members to include
+		#imax=100	
+		imax=max([data_hist.shape[1],data_clim.shape[1],data_nat.shape[1]])
+		#imax=int(min([data_hist.shape[1],data_clim.shape[1],data_nat.shape[1]])*1.5)
 		
+		# Count number of simulations used:
+		nens_hist=min(data_hist.shape[1],imax)
+		nens_nat=min(data_nat.shape[1],imax)
+		nens_clim=min(data_clim.shape[1],imax)
+		nens_total=nens_hist+nens_nat+nens_clim
+		print 'ensembles:',nens_hist,nens_clim,nens_nat,nens_total
+		
+		# Create list of frames:
 		ilist=[imax] # First frame has the max number of ensembles
 		alpha=0.05
 		for i in range(3,imax):
@@ -254,18 +339,25 @@ def main():
 
 		print 'Making video with ',str(len(ilist)),'frames'
 		print ilist
-		fig=plt.figure()			
-		anim = animat.FuncAnimation(fig, return_time_temp,
-									   fargs=(fig,temp_hist,temp_nat),
-									   frames=ilist, interval=20, blit=True)
+		fig=plt.figure()
+		for i,region in enumerate(regions):		
+			anim = animat.FuncAnimation(fig, return_time_temp,
+				fargs=(fig,data_hist[i,:],data_clim[i,:],data_nat[i,:],region),
+				frames=ilist, interval=20, blit=True)
 	 
-	 	fout='/home/cenv0437/cpdn_analysis/CADrought2015/web_content/temp_movie.mp4'
-		print 'created animation...',
-		anim.save(fout,writer='ffmpeg',fps=20,extra_args=['-vcodec', 'libx264'])
-		print "saved as",fout
-	
+			fout='/home/cenv0437/cpdn_analysis/CADrought2015/archive_all/temp_'+region+'_n'+str(nens_total)+'.mp4'
+			
+			print 'created animation...',
+			anim.save(fout,writer='ffmpeg',fps=20,extra_args=['-vcodec', 'libx264'])
+			print "saved as",fout
+			
+			webfile='/home/cenv0437/cpdn_analysis/CADrought2015/web_content/temp_'+region+'.mp4'
+#			if os.path.exists(webfile):
+#				os.remove(webfile)
+#				time.sleep(.1)
+#			os.symlink(fout,webfile)
 	else:
-		return_time_temp(imax,plt.figure(),temp_hist,temp_nat,'.')
+		return_time_temp(imax,plt.figure(),data_hist[i,:],data_clim[i,:],data_nat[i,:],region,outdir='.')
 	
 	
 	

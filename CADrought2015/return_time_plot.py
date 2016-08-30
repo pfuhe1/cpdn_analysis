@@ -56,6 +56,35 @@ def calc_return_time_confidences(em, direction="ascending", c=[0.05, 0.95], bsn=
 			data_slice = sample_store[:,y]
 			conf_inter[c0,y] = stats.scoreatpercentile(data_slice, c[c0]*100)
 	return conf_inter
+	
+###############################################################################
+
+def calc_return_time_confidences_2d(ey_data, direction="ascending", c=[0.05, 0.95], bsn=1e5):
+	# c = confidence intervals (percentiles) to calculate
+	# bsn = boot strap number, number of times to resample the distribution
+	
+	samples=ey_data.shape[0]*ey_data.shape[1]
+	# create the store
+	sample_store = numpy.zeros((bsn,samples), 'f')
+	# do the resampling
+	for s in range(0, int(bsn)):
+		t_data = numpy.zeros(ey_data.shape, 'f')
+		for y in range(0, ey_data.shape[0]):
+			x = random.uniform(0, ey_data.shape[0])
+			t_data[y] = ey_data[x,:]
+		t_data=t_data.flatten()
+		t_data.sort()
+		# reverse if necessary
+		if direction == "descending":
+			t_data = t_data[::-1]
+		sample_store[s,:] = t_data
+	# now for each confidence interval find the  value at the percentile
+	conf_inter = numpy.zeros((len(c), ey_data.shape[0]*ey_data.shape[1]), 'f')
+	for c0 in range(0, len(c)):
+		for y in range(0, samples):
+			data_slice = sample_store[:,y]
+			conf_inter[c0,y] = stats.scoreatpercentile(data_slice, c[c0]*100)
+	return conf_inter
 
 ###############################################################################
 

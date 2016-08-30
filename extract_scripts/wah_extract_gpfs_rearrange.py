@@ -373,7 +373,7 @@ def process_netcdf(in_ncf,base_path,field):
 		o_field_name = get_output_field_name(field)
 		umid,datestamp=in_ncf_end[:-3].split(field[0])
 		out_name = base_path + "/" + field[0] + "/" + o_field_name + "/" + o_field_name +"_" + umid + "_" + um_to_timestamp(datestamp)  + ".nc"
-	#	print in_ncf,out_name
+		#print 'in,out netcdf files:',in_ncf,out_name
 	
 		# open as netCDF to a temporary file
 		nc_in_file = netcdf_file(in_ncf,'r')
@@ -483,11 +483,13 @@ def process_netcdf(in_ncf,base_path,field):
 		nc_out_file.close()
 		nc_in_file.close()
 	except Exception,e:
-		print 'Failed to create netcdf file',os.path.basename(out_name)
 		print e
+		raise
+		print 'Failed to create netcdf file'#,os.path.basename(out_name)
+		raise
 		if os.path.exists(out_name):
 			os.remove(out_name)
-			return False
+		return False
 	return out_name
 
 ###############################################################################
@@ -503,7 +505,6 @@ def extract(taskpath, field_list, output_dir, temp_dir, n_valid,gpfs):
 			base_path, download = make_directories2(output_dir, field_list, n_valid,umid)
 		else:
 			base_path, download = make_directories(output_dir, year, boinc, field_list, n_valid)
-
 		zipstart=1
 		zipend=n_valid
 		#Hack to speed things up (proces only nov-april)
@@ -543,14 +544,17 @@ def extract(taskpath, field_list, output_dir, temp_dir, n_valid,gpfs):
 			for zf_file in zf_list:
 				found=False
 				fname=temp_dir + "/" + zf_file
+				if not os.path.exists(fname):
+					raise Exception("file not exctracted successfully")
 				for field in field_list:
-					pattern = field[0]				
-					if pattern in zf_file:
+					pattern = field[0]
+					if pattern in zf_file and zf_file[-3:]=='.nc':
 						if fname not in extracted_netcdfs[pattern]:
 							extracted_netcdfs[pattern].append(fname)
-							found=True
-							#zf.extract(zf_file, temp_dir)
-				if not found: os.remove(fname)
+						found=True
+						#zf.extract(zf_file, temp_dir)
+				if not found: 
+					os.remove(fname)
 			if not gpfs:
 				os.remove(zf_fh.name)
 	except Exception,e:
@@ -562,6 +566,7 @@ def extract(taskpath, field_list, output_dir, temp_dir, n_valid,gpfs):
 				os.remove(fname)
 #		raise
 		return base_path,False
+	print base_path,extracted_netcdfs
 	return base_path,extracted_netcdfs
 
 ###############################################################################
@@ -619,7 +624,7 @@ if __name__ == "__main__":
 	
 	# create a temporary directory - do we have permission?
 #	temp_dir = tempfile.mkdtemp(dir='/gpfs/projects/cpdn/scratch/cenv0437/')
-	temp_dir = tempfile.mkdtemp(dir='/home/cenv0437/')
+	temp_dir = tempfile.mkdtemp(dir='/home/'+os.environ['USER'])
 #	temp_dir = tempfile.mkdtemp(dir='/dev/shm/')
 	
 	# This should always be the same
@@ -648,15 +653,21 @@ if __name__ == "__main__":
 				netcdfs=all_netcdfs[field[0]][16:17] # Select only april
 			elif field[6]=='6_nov-apr':
 				netcdfs=all_netcdfs[field[0]][11:17] # Select only nov-apr
+			elif field[6]=='7_nov-may':
+				netcdfs=all_netcdfs[field[0]][11:18] # Select only nov-may
 			elif field[6]=='3_jja':
 				netcdfs=all_netcdfs[field[0]][6:9] # Select only june july aug
 			elif field[6]=='3_djf':
 				netcdfs=all_netcdfs[field[0]][12:15] # Select only june july aug
+			elif field[6]=='mayjun':
+				netcdfs=all_netcdfs[field[0]][5:7] 
 			else:
 				netcdfs=all_netcdfs[field[0]]
 #			print netcdfs
 			for nc_in_file in netcdfs:
 				out_netcdf=process_netcdf(nc_in_file,base_path,field)
+				if not out_netcdf:
+					break
 				print os.path.basename(out_netcdf)
 				
 		# Remove netcdf files to stop temp directory getting too big

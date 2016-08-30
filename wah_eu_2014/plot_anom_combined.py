@@ -125,11 +125,13 @@ if __name__=='__main__':
 
 	plt.figure(6)
 	folder='combined_figs/'
+	vmin=-2
+	vmax=2
 
 	plt.subplot(221)
 	axes_list.append(plt.gca())
 	plt.title('a)')
-	c=m.pcolor(x,y,anom_gy,vmin=-3,vmax=3.)
+	c=m.pcolor(x,y,anom_gy,vmin=vmin,vmax=vmax)
 	m.drawcoastlines()
 	m.drawcountries()
 	m.drawparallels(circles)
@@ -139,7 +141,7 @@ if __name__=='__main__':
 	plt.subplot(222)
 	axes_list.append(plt.gca())
 	plt.title('b)')
-	c=m.pcolor(x2,y2,anom_ak,vmin=-3.,vmax=3)#,np.arange(0.6,1.05,.05),extend='both')
+	c=m.pcolor(x2,y2,anom_ak,vmin=vmin,vmax=vmax)
 	m.drawcoastlines()
 	m.drawcountries()
 	m.drawparallels(circles)
@@ -149,7 +151,7 @@ if __name__=='__main__':
 	plt.subplot(223)
 	axes_list.append(plt.gca())
 	plt.title('c)')
-	c=m.pcolor(x3,y3,anom2014_wah,vmin=-3.,vmax=3)
+	c=m.pcolor(x3,y3,anom2014_wah,vmin=vmin,vmax=vmax)
 	m.drawcoastlines()
 	m.drawcountries()
 	m.drawparallels(circles)
@@ -158,7 +160,7 @@ if __name__=='__main__':
 	plt.subplot(224)
 	axes_list.append(plt.gca())
 	plt.title('d)')
-	c=m.pcolor(x3,y3,anomClim_wah,vmin=-3.,vmax=3)
+	c=m.pcolor(x3,y3,anomClim_wah,vmin=vmin,vmax=vmax)
 	m.drawcoastlines()
 	m.drawcountries()
 	m.drawparallels(circles)

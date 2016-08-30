@@ -29,6 +29,7 @@ from return_time_plot import *
 from mpl_toolkits.axes_grid1.inset_locator import zoomed_inset_axes
 from mpl_toolkits.axes_grid1.inset_locator import mark_inset
 
+pkl_dir='/home/cenv0437/cpdn_analysis/CADrought2015'
 
 def return_time_pr(i,fig,datad,mecs,cols,region,fname_out=False):
 	print i
@@ -209,7 +210,7 @@ def main():
 	months=['2014-11','2014-12','2015-01','2015-02','2015-03','2015-04']
 	regions=['California','Oregon','Washington']
 
-	f_pickle='pr_results.pkl'
+	f_pickle=pkl_dir+'/pr_results.pkl'
 	if os.path.exists(f_pickle):
 		fdata=open(f_pickle,'rb')
 		data_dict_hist=pickle.load(fdata)
@@ -221,7 +222,7 @@ def main():
 		data_dict_clim={}
 		data_dict_nat={}
 		
-	f_pickle2='pr_results2.pkl'
+	f_pickle2=pkl_dir+'/pr_results2.pkl'
 	if os.path.exists(f_pickle2):
 		fdata=open(f_pickle2,'rb')
 		data_dict_nat2=pickle.load(fdata)
@@ -230,21 +231,79 @@ def main():
 
 
 # Code to write out pickle files to csv. 
-#	for var in ['temp','pr','swe']:	
-#		f_pickle=open(var+'_results.pkl','rb')
-#		for ensemble in ['actual','climatology','natural']:
-#			data=pickle.load(f_pickle)
-#			f_out=open(var+'_'+ensemble+'_results.csv','w')
-#			f_out.write('# Data for '+var+' in the '+ensemble+' ensemble, averaged by state.\n')
-#			f_out.write('#California,Oregon,Washington\n')
-#			for line in data.values():
-#				f_out.write(str(line[0])+','+str(line[1])+','+str(line[2])+'\n')
-#			f_out.close()
-#		f_pickle.close()
-#	return
+	for var in ['temp','pr','swe']:	
+		fobj_pickle=open(pkl_dir+'/'+var+'_results.pkl','rb')
+		for ensemble in ['actual','climatology','natural_orig']:
+			data=pickle.load(fobj_pickle)
+			outname=var+'_'+ensemble+'_results.csv'
+                        print outname,len(data.values())
+                        f_out=open(outname,'w')
+			f_out.write('# Data for '+var+' in the '+ensemble+' ensemble, averaged by state.\n')
+			f_out.write('#California,Oregon,Washington\n')
+			for line in data.values():
+				f_out.write(str(line[0])+','+str(line[1])+','+str(line[2])+'\n')
+			f_out.close()
+		fobj_pickle.close()
+	
+# Code to write out pickle files to csv. 
+	for var in ['temp','pr','swe']:	
+		fobj_pickle=open(pkl_dir+'/'+var+'_results2.pkl','rb')
+		for ensemble in ['natural_fix']:
+			data=pickle.load(fobj_pickle)
+			outname=var+'_'+ensemble+'_results.csv'
+			print outname,len(data.values())
+			f_out=open(outname,'w')
+			f_out.write('# Data for '+var+' in the '+ensemble+' ensemble, averaged by state.\n')
+			f_out.write('#California,Oregon,Washington\n')
+			for line in data.values():
+				f_out.write(str(line[0])+','+str(line[1])+','+str(line[2])+'\n')
+			f_out.close()
+		fobj_pickle.close()
 
-		
+# Code to write out pickle files to csv.
+	for var in ['swe_pr']:# Ratio of swe to fobj_pickle1=open(pkl_dir+'/swe_results.pkl','rb')
+		fobj_pickle1=open(pkl_dir+'/swe_results.pkl','rb')
+		fobj_pickle2=open(pkl_dir+'/pr_results.pkl','rb')
+		for ensemble in ['actual','climatology','natural_orig']:
+			data1=pickle.load(fobj_pickle1)
+			data2=pickle.load(fobj_pickle2)
+			outname=var+'_'+ensemble+'_results.csv'
+			print outname,len(data.values())
+			f_out=open(outname,'w')
+			f_out.write('# Data for '+var+' in the '+ensemble+' ensemble, averaged by state.\n')
+			f_out.write('#California,Oregon,Washington\n')
+			for umid,line in data1.iteritems():
+				try:
+					f_out.write(str(line[0]/data2[umid][0])+','+str(line[1]/data2[umid][1])+','+str(line[2]/data2[umid][2])+'\n')
+				except:
+					print umid
+					continue
+			f_out.close()
+		fobj_pickle1.close()
+		fobj_pickle2.close()
 
+# Code to write out pickle files to csv.
+	for var in ['swe_pr']:
+		fobj_pickle1=open(pkl_dir+'/swe_results2.pkl','rb')
+		fobj_pickle2=open(pkl_dir+'/pr_results2.pkl','rb')
+		for ensemble in ['natural_fix']:
+			data1=pickle.load(fobj_pickle1)
+			data2=pickle.load(fobj_pickle2)
+			outname=var+'_'+ensemble+'_results.csv'
+			print outname,len(data.values())
+			f_out=open(outname,'w')
+			f_out.write('# Data for '+var+' in the '+ensemble+' ensemble, averaged by state.\n')
+			f_out.write('#California,Oregon,Washington\n')
+			for umid,line in data1.iteritems():
+				try:
+					f_out.write(str(line[0]/data2[umid][0])+','+str(line[1]/data2[umid][1])+','+str(line[2]/data2[umid][2])+'\n')
+				except:
+					print umid
+					continue
+			f_out.close()
+		fobj_pickle1.close()
+		fobj_pickle2.close()
+	sys.exit(0)
 
 	# Actual
 	fnames_data_hist=glob.glob('/home/cenv0437/scratch/hadam3p_pnw/batch181/sub-batch15/ga.pe/field90/field90_????_2014-11.nc')

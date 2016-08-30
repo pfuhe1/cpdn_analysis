@@ -8,7 +8,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import pickle
 from mpl_toolkits.basemap import Basemap,cm
-from region_returntimes import get_region_returntimes_sampled, remap_p5deg_to_rotated, find_closest
+from region_returntimes import get_region_returntimes_sampled, get_region_returntimes_bootstrap_stats,remap_p5deg_to_rotated, find_closest
 from scipy.io.netcdf import netcdf_file
 import matplotlib.patches as mpatches
 
@@ -47,14 +47,14 @@ if __name__=='__main__':
 	fdata.close()
 	print 'loaded data from pkl files'
 
-	obs_p5deg= '/home/cenv0437/scratch/data_from_ouce/CRU_TS_Absolute_plus_BEST_anomaly_201312_201412.nc'
-	obsname='BEST'
+#	obs_p5deg= '/home/cenv0437/scratch/data_from_ouce/CRU_TS_Absolute_plus_BEST_anomaly_201312_201412.nc'
+#	obsname='BEST'
 
 #	obs_p5deg= '/home/cenv0437/scratch/data_from_ouce/CRU_TS_Absolute_plus_CRU4_anomaly_201312_201412.nc'
 #	obsname='CRU4'
 
-#	obs_p5deg= '/home/cenv0437/scratch/data_from_ouce/CRU_TS_Absolute_plus_GISS_anomaly_201312_201412.nc'
-#	obsname='GISS'
+	obs_p5deg= '/home/cenv0437/scratch/data_from_ouce/CRU_TS_Absolute_plus_GISS_anomaly_201312_201412.nc'
+	obsname='GISS'
 
 #	obs_p5deg= '/home/cenv0437/scratch/data_from_ouce/CRU_TS_Absolute_plus_NCEP_anomaly_201312_201412_all.nc'
 #	obsname='NCEP'
@@ -104,7 +104,7 @@ if __name__=='__main__':
 		for n in range(50): #width/height of domain
 			print n,
 			try:
-					vals=get_region_returntimes_sampled(historical_data,natural_data,clim_hist_data,clim_nat_data,obs,i0-n,i0+n+1,j0-n,j0+n+1)
+					vals=get_region_returntimes_bootstrap_stats(historical_data,natural_data,clim_hist_data,clim_nat_data,obs,i0-n,i0+n+1,j0-n,j0+n+1)
 			except Exception,e:
 				print e
 				break
@@ -221,28 +221,33 @@ plt.clf()
 
 box_width=np.arange(50,5000,100)
 reg_lines=[]
-	
+hatch_hist='oo'
+hatch_nat='OO'
+hatch_2014='//'
+hatch_clim='\\\\'
+hatch_emp='..'
+
 # Plot the data for return times / probabilities for each region
 for i,reg in enumerate(rnames):
 	print reg
 	
 	plt.subplot(321)
 	plt.semilogy(box_width,1/hist[i,:], rcolors[i]+'.-')#,label=reg+'-hist')
-	plt.fill_between( box_width,1/hist[i,:],1/hist_low[i,:],color=rcolors[i],alpha=0.1,hatch='\\')
+	plt.fill_between( box_width,1/hist_up[i,:],1/hist_low[i,:],color=rcolors[i],alpha=0.1,hatch=hatch_hist)
 	plt.semilogy(box_width,1/nat[i,:], rcolors[i]+'-')#,label=reg)#+'-nat')
-	plt.fill_between( box_width,1/nat[i,:],1/nat_low[i,:],color=rcolors[i],alpha=0.1,hatch='/')
+	plt.fill_between( box_width,1/nat_up[i,:],1/nat_low[i,:],color=rcolors[i],alpha=0.1,hatch=hatch_nat)
 	
 	plt.subplot(323)
 	plt.semilogy(box_width,1/clim_hist[i,:], rcolors[i]+'.-')#,label=reg+'-hist')
-	plt.fill_between( box_width,1/clim_hist[i,:],1/clim_hist_low[i,:], color=rcolors[i],alpha=0.1,hatch='\\')
+	plt.fill_between( box_width,1/clim_hist_up[i,:],1/clim_hist_low[i,:], color=rcolors[i],alpha=0.1,hatch=hatch_hist)
 	plt.semilogy(box_width,1/clim_nat[i,:], rcolors[i]+'-')#,label=reg)#+'-nat')
-	plt.fill_between( box_width,1/clim_nat[i,:],1/clim_nat_low[i,:], color=rcolors[i],alpha=0.1,hatch='/')
+	plt.fill_between( box_width,1/clim_nat_up[i,:],1/clim_nat_low[i,:], color=rcolors[i],alpha=0.1,hatch=hatch_nat)
 	
 	plt.subplot(325)
 	plt.plot(box_width,(1-hist[i,:]/nat[i,:]), rcolors[i]+'.-')#,label=reg+'-hist')
 	plt.plot(box_width,(1-clim_hist[i,:]/clim_nat[i,:]), rcolors[i]+'-')#,label=reg)#+'-nat')
-	plt.fill_between( box_width,1-hist_up[i,:]/nat_low[i,:],1-hist[i,:]/nat[i,:], color=rcolors[i],alpha=0.1,hatch='//')
-	plt.fill_between( box_width,1-clim_hist_up[i,:]/clim_nat_low[i,:],1-clim_hist[i,:]/clim_nat[i,:], color=rcolors[i],alpha=0.1,hatch='\\\\')
+	plt.fill_between( box_width,1-hist_up[i,:]/nat_low[i,:],1-hist_low[i,:]/nat_up[i,:], color=rcolors[i],alpha=0.1,hatch=hatch_2014)
+	plt.fill_between( box_width,1-clim_hist_up[i,:]/clim_nat_low[i,:],1-clim_hist_low[i,:]/clim_nat_up[i,:], color=rcolors[i],alpha=0.1,hatch=hatch_clim)
 	
 	plt.subplot(322)
 	reg_lines.append(plt.plot([],[],rcolors[i],label=reg)[0])
@@ -251,15 +256,15 @@ for i,reg in enumerate(rnames):
 #		plt.semilogy(xvals,1/regiondata[reg].lort2014, '.-'+dict_colors[reg])#,linewidth=0.5,markersize=2.5)
 	plt.semilogy(xvals,1/regiondata[reg].rt2014, '.-'+dict_colors[reg],linewidth=1)
 #		plt.semilogy(xvals,1/regiondata[reg].lort1900, '-'+dict_colors[reg])#,linewidth=0.5)
-	plt.semilogy(xvals,1/regiondata[reg].rt1900, ':'+dict_colors[reg],linewidth=1)
-	plt.fill_between( xvals,1/regiondata[reg].rt1900,1/regiondata[reg].lort1900, alpha=0.1,color=dict_colors[reg],hatch='//')
-	plt.fill_between( xvals,1/regiondata[reg].rt2014,1/regiondata[reg].lort2014, alpha=0.1,color=dict_colors[reg],hatch='\\\\')
+	plt.semilogy(xvals,1/regiondata[reg].rt1900, '-'+dict_colors[reg],linewidth=1)
+	plt.fill_between( xvals,1/regiondata[reg].rt1900,1/regiondata[reg].lort1900, alpha=0.1,color=dict_colors[reg],hatch=hatch_nat)
+	plt.fill_between( xvals,1/regiondata[reg].rt2014,1/regiondata[reg].lort2014, alpha=0.1,color=dict_colors[reg],hatch=hatch_hist)
 	
 	plt.subplot(326)
 	plt.plot(xvals,1-1/regiondata[reg].ratio,'-'+dict_colors[reg])
 #		plt.plot(xvals,1-1/regiondata[reg].loratio,dict_colors[reg])
-	plt.fill_between( xvals,1-1/regiondata[reg].loratio,1-1/regiondata[reg].ratio,alpha=0.1,color=dict_colors[reg],hatch='.')
-	
+	plt.fill_between( xvals,1-1/regiondata[reg].loratio,1-1/regiondata[reg].ratio,alpha=0.1,color=dict_colors[reg],hatch=hatch_emp)
+
 ###################################
 # Plot formatting
 
@@ -274,6 +279,9 @@ plt.ylim([0.001,1])
 plt.xlim([0,4000])
 plt.xlabel('Scale of region (km)')
 plt.ylabel('Probability of event')
+ax=plt.gca()
+ticks=ax.get_xticks()
+ax.set_xticks(ticks[::2])
 
 plt.subplot(323)
 #	plt.plot([],[],'k--',label='Ensemble:')
@@ -286,6 +294,9 @@ plt.ylim([0.001,1])
 plt.xlim([0,4000])
 plt.xlabel('Scale of region (km)')
 plt.ylabel('Probability of event')
+ax=plt.gca()
+ticks=ax.get_xticks()
+ax.set_xticks(ticks[::2])
 
 plt.subplot(325)
 #	plt.plot([],[],'k--',label='Ensemble:')
@@ -298,6 +309,10 @@ plt.ylim([0.7,1])
 plt.xlim([0,4000])
 plt.xlabel('Scale of region (km)')
 plt.ylabel('FAR')
+ax=plt.gca()
+ticks=ax.get_xticks()
+ax.set_xticks(ticks[::2])
+
 
 plt.subplot(324)
 plt.title('c)')
@@ -309,6 +324,9 @@ plt.ylim([0.001,1])
 plt.xlim([0,4000])
 plt.xlabel('Scale of region (km)')
 plt.ylabel('Probability of event')
+ax=plt.gca()
+ticks=ax.get_xticks()
+ax.set_xticks(ticks[::2])
 
 plt.subplot(326)
 plt.title('e)')
@@ -318,6 +336,9 @@ plt.ylim([0.7,1])
 plt.xlim([0,4000])
 plt.xlabel('Scale of region (km)')
 plt.ylabel('FAR')
+ax=plt.gca()
+ticks=ax.get_xticks()
+ax.set_xticks(ticks[::2])
 
 plt.subplot(322)
 #plt.title('b)')
@@ -328,22 +349,22 @@ line=plt.plot([],[],'k-')[0]
 dashdot=plt.plot([],[],'k-.')[0]
 
 leg1= plt.legend(handles=reg_lines,loc='right',fontsize='small')
-ax = plt.gca().add_artist(leg1)
+plt.gca().add_artist(leg1)
 
 patches=[]
-patchlabels=['Hist','Nat','2014 FAR','Clim FAR','Empirical FAR']
-patches.append((dotline,mpatches.Patch(color='k',hatch='\\\\',alpha=0.3)))
-patches.append((line,mpatches.Patch(color='k',hatch='//',alpha=0.3)))
-patches.append((dotline,mpatches.Patch(color='k',hatch='//',alpha=0.3)))
-patches.append((line,mpatches.Patch(color='k',hatch='\\\\',alpha=0.3)))
-patches.append((line,mpatches.Patch(color='k',hatch='..',alpha=0.3)))
+patchlabels=['Hist Prob','Nat Prob','2014 FAR','Clim FAR','Empirical FAR']
+patches.append((dotline,mpatches.Patch(color='k',hatch=hatch_hist,alpha=0.3)))
+patches.append((line,mpatches.Patch(color='k',hatch=hatch_nat,alpha=0.3)))
+patches.append((dotline,mpatches.Patch(color='k',hatch=hatch_2014,alpha=0.3)))
+patches.append((line,mpatches.Patch(color='k',hatch=hatch_clim,alpha=0.3)))
+patches.append((line,mpatches.Patch(color='k',hatch=hatch_emp,alpha=0.3)))
 
 plt.legend(patches,patchlabels,loc='center left',fontsize='small')
 
 plt.tight_layout()
-plt.savefig('region_figs/figure_combined_'+obsname+'.png')
+plt.savefig('combined_figs/figure_combined_'+obsname+'.png')
 
-	
+
 #####################################
 # Far plot
 #	plt.figure(3)
@@ -358,5 +379,5 @@ plt.savefig('region_figs/figure_combined_'+obsname+'.png')
 #	plt.xlabel('Scale of region (km)')
 #	plt.ylabel('RR')
 #	plt.savefig('figure_far_specific.png')
-	
+
 	

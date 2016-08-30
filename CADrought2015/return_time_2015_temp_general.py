@@ -28,6 +28,7 @@ from return_time_plot import *
 from mpl_toolkits.axes_grid1.inset_locator import zoomed_inset_axes
 from mpl_toolkits.axes_grid1.inset_locator import mark_inset
 
+pkl_dir='/home/cenv0437/cpdn_analysis/CADrought2015'
 
 def return_time_temp(i,fig,datad,mecs,cols,region,fname_out=False):
 	print i
@@ -208,7 +209,7 @@ def main():
 	months=['2014-12','2015-01','2015-02']
 	regions=['California','Oregon','Washington']	
 	
-	f_pickle='temp_results.pkl'
+	f_pickle=pkl_dir+'/temp_results.pkl'
 	if os.path.exists(f_pickle):
 		fdata=open(f_pickle,'rb')
 		data_dict_hist=pickle.load(fdata)
@@ -220,7 +221,7 @@ def main():
 		data_dict_clim={}
 		data_dict_nat={}
 		
-	f_pickle2='temp_results2.pkl'
+	f_pickle2=pkl_dir+'/temp_results2.pkl'
 	if os.path.exists(f_pickle2):
 		fdata=open(f_pickle2,'rb')
 		data_dict_nat2=pickle.load(fdata)

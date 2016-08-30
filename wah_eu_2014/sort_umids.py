@@ -40,12 +40,39 @@ def choose_tasknames(infiles,startid,endid):
                         choosefiles.append(f)
         return choosefiles
         
+        
 def choose_mask(infiles,startid,endid):
 	#If necessary glob infiles from a string into a list
 	if isinstance(infiles,basestring):infiles=glob.glob(infiles)
 	choosefiles=np.zeros(len(infiles),dtype=bool)
 	for i,f in enumerate(infiles):
 		umid=os.path.basename(f).split('_')[2]
+		if umid_to_int(startid)<=umid_to_int(umid) and umid_to_int(umid)<=umid_to_int(endid):
+			choosefiles[i]=True
+        return choosefiles
+        
+        
+############
+#The following functions assume that the umid is the second element rather than the third
+
+
+def choose_tasknames1(infiles,startid,endid):
+        choosefiles=[]
+        #If necessary glob infiles from a string into a list
+        if isinstance(infiles,basestring):infiles=glob.glob(infiles)
+        for f in infiles:
+                umid=os.path.basename(f).split('_')[1]
+                if umid_to_int(startid)<=umid_to_int(umid) and umid_to_int(umid)<=umid_to_int(endid):
+                        choosefiles.append(f)
+        return choosefiles
+        
+        
+def choose_mask1(infiles,startid,endid):
+	#If necessary glob infiles from a string into a list
+	if isinstance(infiles,basestring):infiles=glob.glob(infiles)
+	choosefiles=np.zeros(len(infiles),dtype=bool)
+	for i,f in enumerate(infiles):
+		umid=os.path.basename(f).split('_')[1]
 		if umid_to_int(startid)<=umid_to_int(umid) and umid_to_int(umid)<=umid_to_int(endid):
 			choosefiles[i]=True
         return choosefiles

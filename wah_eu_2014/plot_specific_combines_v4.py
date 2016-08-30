@@ -353,7 +353,7 @@ plt.plot([],[],'k-',label='Clim')
 plt.title('d)')
 #	plt.title('FAR')
 #	plt.legend(loc='best')
-plt.ylim([1,1000])
+plt.ylim([1,10000])
 plt.xlim([0,4000])
 plt.xlabel('Scale of region (km)')
 plt.ylabel('RR')
@@ -380,7 +380,7 @@ plt.subplot(326)
 plt.title('e)')
 plt.plot([],[],'k.-',label='loratio')
 plt.plot([],[],'k-.',label='ratio')
-plt.ylim([1,1000])
+plt.ylim([1,10000])
 plt.xlim([0,4000])
 plt.xlabel('Scale of region (km)')
 plt.ylabel('RR')
@@ -400,7 +400,7 @@ leg1= plt.legend(handles=reg_lines,loc='right',fontsize='small')
 plt.gca().add_artist(leg1)
 
 patches=[]
-patchlabels=['Hist Prob','Nat Prob','2014 FAR','Clim FAR','Empirical FAR']
+patchlabels=['Hist Prob','Nat Prob','2014 RR','Clim RR','Empirical RR']
 patches.append((dotline,mpatches.Patch(color='k',hatch=hatch_hist,alpha=0.3)))
 patches.append((line,mpatches.Patch(color='k',hatch=hatch_nat,alpha=0.3)))
 patches.append((dotline,mpatches.Patch(color='k',hatch=hatch_2014,alpha=0.3)))
@@ -410,7 +410,7 @@ patches.append((line,mpatches.Patch(color='k',hatch=hatch_emp,alpha=0.3)))
 plt.legend(patches,patchlabels,loc='center left',fontsize='small')
 
 plt.tight_layout()
-plt.savefig('combined_figs/figure_combined_'+obsname+'v4.png')
+plt.savefig('combined_figs/figure_combined_'+obsname+'v4_1.png')
 print 'done'
 
 #####################################
